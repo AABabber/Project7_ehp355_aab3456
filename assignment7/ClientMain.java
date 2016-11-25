@@ -8,13 +8,21 @@
  * Slip days used: <0>
  * Fall 2016
  */
+import java.io.*; 
+import java.net.*; 
+import javax.swing.*; 
+import java.awt.*; 
+import java.awt.event.*;
+
 public class ClientMain {
 
+	 
+	
 	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-		//not sure what the ip address should be yet
-		Socket clientSock = new Socket("190.165.1.103",9999);
-
-	}
-
+		try {
+			new ChatClient().run();
+		} catch (Exception e) { e.printStackTrace(); }
+	} 
+	
+	
 }

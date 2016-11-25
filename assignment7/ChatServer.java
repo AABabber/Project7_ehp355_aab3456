@@ -1,13 +1,17 @@
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 
-public class ChatPrintWriterprivate ArrayList<PrintWriter> clientOutputStreams;
+public class ChatServer{
+	private ArrayList<PrintWriter> clientOutputStreams;
 	
+
 	private void setUpNetworking() throws Exception{
 		clientOutputStreams = new ArrayList<PrintWriter>();
-		
+		@SuppressWarnings("resource")
 		ServerSocket serverSock = new ServerSocket(9000);
 		while(true){
 			Socket clientSocket = serverSock.accept();
@@ -16,6 +20,36 @@ public class ChatPrintWriterprivate ArrayList<PrintWriter> clientOutputStreams;
 			t.start();
 			clientOutputStreams.add(writer);
 			System.out.println("Connection good");
+		}
+	}
+	
+	private void notifyClients(String message){
+		for(PrintWriter writer : clientOutputStreams){
+			writer.println(message);
+			writer.flush();
+		}
+	}
+	
+	class ClientHandler implements Runnable{
+		private BufferedReader reader;
+		
+		public ClientHandler(Socket clientSocket) throws IOException{
+			Socket sock = clientSocket;
+			reader = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+			
+		}
+		
+		public void run(){
+			String message;
+			try{
+				while((message = reader.readLine())!=null){
+					System.out.println("read"+ message);
+					notifyClients(message);
+				}
+			}catch(IOException e){
+				e.printStackTrace();
+				
+			}
 		}
 	}
 

@@ -10,21 +10,24 @@ import java.net.ServerSocket;
  * Slip days used: <0>
  * Fall 2016
  */
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.ArrayList;
 
 public class ServerMain {
-
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-		ServerSocket serverSock = new ServerSocket(9999);
-		
-		while(true){
-			Socket clientSock = serverSock.accept();
-			Thread t = new Thread(new ClientHandler(clientSocket));
-			t.start();
-			System.out.println("Connection made");			
+	private ArrayList<PrintWriter> clientOutputStreams;
+	
+	public static void main(String[] args){
+		try{
+			new ChatServer().setUpNetworking();
+		} catch(Exception e){
+			e.printStackTrace();
 		}
-		
-		
 	}
+	
 
 }
