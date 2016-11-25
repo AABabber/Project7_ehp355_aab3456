@@ -11,12 +11,12 @@ import java.util.Observable;
 
 public class ChatServer extends Observable{
 	private ArrayList<PrintWriter> clientOutputStreams;
-	
+	public int roomSize;
 
 	public void setUpNetworking() throws Exception{
 		clientOutputStreams = new ArrayList<PrintWriter>();
 		@SuppressWarnings("resource")
-		ServerSocket serverSock = new ServerSocket(9000);
+		ServerSocket serverSock = new ServerSocket(4343);
 		while(true){
 		
 				Socket clientSocket = serverSock.accept();
@@ -35,7 +35,7 @@ public class ChatServer extends Observable{
 		public ClientHandler(Socket clientSocket) throws IOException{
 			Socket sock = clientSocket;
 			reader = new BufferedReader(new InputStreamReader(sock.getInputStream()));
-			
+	
 		}
 		
 		public void run(){
@@ -43,6 +43,7 @@ public class ChatServer extends Observable{
 			try{
 				while((message = reader.readLine())!=null){
 					System.out.println("read"+ message);
+					setChanged();
 					notifyObservers(message);
 				}
 			}catch(IOException e){

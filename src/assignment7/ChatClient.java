@@ -54,7 +54,7 @@ public class ChatClient {
 	
 	private void setUpNetworking() throws Exception {
 	@SuppressWarnings("resource") 
-	Socket sock = new Socket("127.0.0.1", 9000);
+	Socket sock = new Socket("127.0.0.1", 4343);
 	InputStreamReader streamReader = new InputStreamReader(sock.getInputStream());
 	
 	reader = new BufferedReader(streamReader); 
