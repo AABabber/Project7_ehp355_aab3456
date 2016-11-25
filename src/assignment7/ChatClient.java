@@ -1,7 +1,9 @@
 package assignment7;
 
 import java.io.*; 
-import java.net.*; 
+import java.net.*;
+import java.util.ArrayList;
+
 import javax.swing.*; 
 import java.awt.*; 
 import java.awt.event.*;
@@ -11,6 +13,10 @@ public class ChatClient {
 	private JTextField outgoing;
 	private BufferedReader reader;
 	private PrintWriter writer;
+	private static ArrayList<ChatClient> clients = new ArrayList<ChatClient>();
+	
+	
+	
 	
 	public void run() throws Exception {
 	
@@ -64,11 +70,13 @@ public class ChatClient {
 		public void actionPerformed(ActionEvent ev) {
 			writer.println(outgoing.getText()); 
 			writer.flush();
-			outgoing.setText(""); outgoing.requestFocus();
+			outgoing.setText(""); 
+			outgoing.requestFocus();
 		}
 	}
 	
 	class IncomingReader implements Runnable {
+	
 		public void run() { 
 			String message; 
 			try {

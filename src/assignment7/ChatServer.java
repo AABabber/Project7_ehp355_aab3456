@@ -7,8 +7,9 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Observable;
 
-public class ChatServer{
+public class ChatServer extends Observable{
 	private ArrayList<PrintWriter> clientOutputStreams;
 	
 
@@ -17,19 +18,14 @@ public class ChatServer{
 		@SuppressWarnings("resource")
 		ServerSocket serverSock = new ServerSocket(9000);
 		while(true){
-			Socket clientSocket = serverSock.accept();
-			PrintWriter writer = new PrintWriter(clientSocket.getOutputStream());
-			Thread t = new Thread(new ClientHandler(clientSocket));
-			t.start();
-			clientOutputStreams.add(writer);
-			System.out.println("Connection good");
-		}
-	}
-	
-	private void notifyClients(String message){
-		for(PrintWriter writer : clientOutputStreams){
-			writer.println(message);
-			writer.flush();
+		
+				Socket clientSocket = serverSock.accept();
+				ClientObserver writer = new ClientObserver(clientSocket.getOutputStream());
+				Thread t = new Thread(new ClientHandler(clientSocket));
+				t.start();
+				this.addObserver(writer);
+				System.out.println("Connection good");
+			
 		}
 	}
 	
@@ -47,7 +43,7 @@ public class ChatServer{
 			try{
 				while((message = reader.readLine())!=null){
 					System.out.println("read"+ message);
-					notifyClients(message);
+					notifyObservers(message);
 				}
 			}catch(IOException e){
 				e.printStackTrace();

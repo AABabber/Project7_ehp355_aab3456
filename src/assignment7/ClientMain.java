@@ -1,5 +1,7 @@
 package assignment7;
 
+import java.util.ArrayList;
+
 /* 
  * Aaron Babber
  * aab3456
@@ -12,6 +14,7 @@ package assignment7;
  */
 
 public class ClientMain {
+	public static ArrayList<ChatClient> room = new ArrayList<ChatClient>();
 	
 	public static void main(String[] args) {
 		try {
