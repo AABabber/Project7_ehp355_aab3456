@@ -3,25 +3,30 @@ package assignment7;
 import java.io.*; 
 import java.net.*;
 import java.util.ArrayList;
+import java.util.Observable;
 
 import javax.swing.*; 
 import java.awt.*; 
 import java.awt.event.*;
 
-public class ChatClient {
+public class ChatClient extends Observable implements Runnable{
 	private JTextArea incoming; 
 	private JTextField outgoing;
 	private BufferedReader reader;
 	private PrintWriter writer;
-	private static ArrayList<ChatClient> clients = new ArrayList<ChatClient>();
+	public String header;
 	
 	
 	
-	
-	public void run() throws Exception {
+	public void run() {
 	
 	initView();
-	setUpNetworking();
+	try {
+		setUpNetworking();
+	} catch (Exception e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
 	
 	}
 	

@@ -11,7 +11,7 @@ import java.util.Observable;
 
 public class ChatServer extends Observable{
 	private ArrayList<PrintWriter> clientOutputStreams;
-	public int roomSize;
+	public int roomSize = 0;
 
 	public void setUpNetworking() throws Exception{
 		clientOutputStreams = new ArrayList<PrintWriter>();
@@ -21,7 +21,7 @@ public class ChatServer extends Observable{
 		
 				Socket clientSocket = serverSock.accept();
 				ClientObserver writer = new ClientObserver(clientSocket.getOutputStream());
-				Thread t = new Thread(new ClientHandler(clientSocket));
+				Thread t = new Thread(new ClientHandler(clientSocket, roomSize++));
 				t.start();
 				this.addObserver(writer);
 				System.out.println("Connection good");
@@ -31,11 +31,12 @@ public class ChatServer extends Observable{
 	
 	class ClientHandler implements Runnable{
 		private BufferedReader reader;
+		private int id;
 		
-		public ClientHandler(Socket clientSocket) throws IOException{
+		public ClientHandler(Socket clientSocket, int i) throws IOException{
 			Socket sock = clientSocket;
 			reader = new BufferedReader(new InputStreamReader(sock.getInputStream()));
-	
+			id = i;
 		}
 		
 		public void run(){
@@ -44,7 +45,7 @@ public class ChatServer extends Observable{
 				while((message = reader.readLine())!=null){
 					System.out.println("read"+ message);
 					setChanged();
-					notifyObservers(message);
+					notifyObservers("User"+id+": "+message);
 				}
 			}catch(IOException e){
 				e.printStackTrace();
