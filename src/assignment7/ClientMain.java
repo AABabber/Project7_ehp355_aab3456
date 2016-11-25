@@ -1,3 +1,5 @@
+package assignment7;
+
 /* 
  * Aaron Babber
  * aab3456
@@ -8,15 +10,8 @@
  * Slip days used: <0>
  * Fall 2016
  */
-import java.io.*; 
-import java.net.*; 
-import javax.swing.*; 
-import java.awt.*; 
-import java.awt.event.*;
 
 public class ClientMain {
-
-	 
 	
 	public static void main(String[] args) {
 		try {

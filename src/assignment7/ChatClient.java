@@ -1,3 +1,4 @@
+package assignment7;
 
 import java.io.*; 
 import java.net.*; 
@@ -29,8 +30,8 @@ public class ChatClient {
 	incoming.setEditable(false);
 	
 	JScrollPane qScroller = new JScrollPane(incoming);
-	qScroller.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWA YS);
-	qScroller.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ ALWAYS);
+	qScroller.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+	qScroller.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
 	
 	outgoing = new JTextField(20); 
 	JButton sendButton = new JButton("Send"); 
@@ -47,7 +48,7 @@ public class ChatClient {
 	
 	private void setUpNetworking() throws Exception {
 	@SuppressWarnings("resource") 
-	Socket sock = new Socket("127.0.0.1", 4242);
+	Socket sock = new Socket("127.0.0.1", 9000);
 	InputStreamReader streamReader = new InputStreamReader(sock.getInputStream());
 	
 	reader = new BufferedReader(streamReader); 

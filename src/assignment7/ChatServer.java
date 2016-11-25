@@ -1,5 +1,8 @@
+package assignment7;
+
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -9,7 +12,7 @@ public class ChatServer{
 	private ArrayList<PrintWriter> clientOutputStreams;
 	
 
-	private void setUpNetworking() throws Exception{
+	public void setUpNetworking() throws Exception{
 		clientOutputStreams = new ArrayList<PrintWriter>();
 		@SuppressWarnings("resource")
 		ServerSocket serverSock = new ServerSocket(9000);
