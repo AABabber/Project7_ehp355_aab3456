@@ -24,7 +24,6 @@ public class ChatClient extends Observable implements Runnable{
 	try {
 		setUpNetworking();
 	} catch (Exception e) {
-		// TODO Auto-generated catch block
 		e.printStackTrace();
 	}
 	
