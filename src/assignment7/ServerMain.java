@@ -1,6 +1,4 @@
-package assignment7;
-
-/* 
+/* EE422C Project 7
  * Aaron Babber
  * aab3456
  * 16480
@@ -11,6 +9,7 @@ package assignment7;
  * Fall 2016
  */
 
+package assignment7;
 
 public class ServerMain {
 	
