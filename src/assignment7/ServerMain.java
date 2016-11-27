@@ -15,7 +15,8 @@ public class ServerMain {
 	
 	public static void main(String[] args){
 		try{
-			new ChatServer().setUpNetworking();
+			ChatServer server = new ChatServer();
+			server.setUpNetworking();
 		} catch(Exception e){
 			e.printStackTrace();
 		}

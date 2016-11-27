@@ -25,7 +25,11 @@ import javafx.scene.text.Font;
 
 public class ChatClient extends Application {
 	
-	// TODO: Create equivalent versions of all of these fields
+	/* TODO: Create equivalent versions of all of these fields
+	 * 
+	 * reader and writer can still be used
+	 */
+	
 	/*
 	private JTextArea incoming; 
 	private JTextField outgoing;
@@ -119,7 +123,11 @@ public class ChatClient extends Application {
 	private void setUpNetworking() throws Exception {
 		
 		// TODO: Create host and port private variables which are set by user
-		// TODO: Use DataOutputStream and DataInputStream 
+		
+		/* BufferedReader and PrintWriter are better than DataInputStream and  
+		 * DataOutputStream for String processing
+		 */
+		
 		/*
 		@SuppressWarnings("resource") 
 		Socket sock = new Socket("127.0.0.1", 4343);
