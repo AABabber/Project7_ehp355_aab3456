@@ -13,10 +13,15 @@ package assignment7;
 
 import java.io.*; 
 import java.net.*;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 
 // import java.util.Observable;
 import javafx.application.Application;
+import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.stage.Stage;
 import javafx.scene.Scene;
@@ -47,9 +52,12 @@ public class ChatClient extends Application {
 	private PrintWriter writer;
 	private String name;	// TODO: Don't allow there to exist duplicate usernames
 	private ListView<String> friendList;
+	// client console text area
+	private Map<String, TextArea> currentChats;
 	
 	@Override 
 	public void start(Stage primaryStage) {
+		currentChats = new HashMap<String, TextArea>();
 		initView(primaryStage);
 		try {
 			setUpNetworking();
@@ -94,6 +102,7 @@ public class ChatClient extends Application {
 		startChat.setPrefSize(170, 40);
 		// The Font.font() method enables you to specify the font family name and size.
 		startChat.setFont(Font.font("System", 16));
+		startChat.setOnAction( );
 		// TODO: Call setOnAction - remember to clear friendList selection
 		
 		// Left container
@@ -144,7 +153,6 @@ public class ChatClient extends Application {
 		JButton sendButton = new JButton("Send"); 
 		sendButton.addActionListener(new SendButtonListener());
 		*/
-
 	} 
 	
 	private void setUpNetworking() throws Exception {
@@ -154,16 +162,6 @@ public class ChatClient extends Application {
 		/* BufferedReader and PrintWriter are better than DataInputStream and  
 		 * DataOutputStream for String processing
 		 */
-		
-		/*
-		@SuppressWarnings("resource") 
-		Socket sock = new Socket("127.0.0.1", 4343);
-		InputStreamReader streamReader = new InputStreamReader(sock.getInputStream());
-		
-		reader = new BufferedReader(streamReader); 
-		writer = new PrintWriter(sock.getOutputStream());
-		System.out.println("networking established");  
-		*/
 		@SuppressWarnings("resource") 
 		Socket sock = new Socket(host, port);
 		InputStreamReader streamReader = new InputStreamReader(sock.getInputStream());
@@ -174,9 +172,9 @@ public class ChatClient extends Application {
 		
 		Thread readerThread = new Thread(new IncomingReader());
 		readerThread.start();
-	
 	}
 	
+	// TODO: Implement EventHandler for TextField action
 	/*
 	class SendButtonListener implements ActionListener {
 		
@@ -191,6 +189,57 @@ public class ChatClient extends Application {
 	}
 	*/
 	
+	class ChatButtonHandler implements EventHandler<ActionEvent> {
+
+		@Override
+		public void handle(ActionEvent event) {
+			
+			// Get selected names
+			ObservableList<String> selected = friendList.getSelectionModel().getSelectedItems();
+			
+			// Don't need to check if names are online if we properly
+			// update friendList upon client "leaving"
+			
+			/*
+			String selectedNames = "query:";
+			for (int i = 0; i < selected.size(); i++) {
+				if (i == (selected.size() - 1)) {
+					selectedNames = selectedNames + selected.get(i);
+				}
+				else {
+					selectedNames = selectedNames + selected.get(i) + ", ";
+				}
+			}
+			writer.println(selectedNames);
+			writer.flush();
+			*/
+			
+			String selectedNames = "";
+			for (int i = 0; i < selected.size(); i++) {
+				if (i == (selected.size() - 1)) {
+					selectedNames = selectedNames + selected.get(i);
+				}
+				else {
+					selectedNames = selectedNames + selected.get(i) + " ";
+				}
+			}
+			
+			// Later: Do additional check for friend list
+		
+			// Check if there's already a chat with selected names
+				// If so, switch focus to existing chat
+			if (currentChats.containsKey(selectedNames)) {
+				// TODO: Determine what to request focus on
+			}
+		
+			// Else, create a new key-value pair for chat
+				// key will be string of receivers
+				// value will be TextArea instance
+			
+		}
+		
+	}
+	
 	class IncomingReader implements Runnable {
 	
 		public void run() {
@@ -200,21 +249,24 @@ public class ChatClient extends Application {
 				// TODO: Determine whether this condition is effectively endless
 				
 				while ((message = reader.readLine()) != null) {
-					String messageTag = message.substring(0, 4);
-					/* If message doesn't being with "from", it's an update
-					 * to the online users.
-					 */
-					if (!messageTag.equals("from")) {
-						// Using tag "new:" for updates
+					
+					String firstLetter = Character.toString(message.charAt(0));
+					
+					// Using tag "new:" for friend list updates
+					if (firstLetter.equals("n")) {	
 						String newUser = message.substring(4, message.length());
 						// DONE: This dynamically updates lists
 						if(!friendList.getItems().contains(newUser) && !newUser.equals(name)) {
 							friendList.getItems().add(newUser);
 						}
 					}
-					else {
+					
+					// First tag for messages is "from:"
+					else if (firstLetter.equals("f")) {	
 						// TODO: Process message
+						// Check if there's a chat between this client and the sender
 					}
+					
 				}
 			} catch (IOException ex) { 
 				ex.printStackTrace(); 

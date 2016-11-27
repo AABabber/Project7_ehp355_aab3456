@@ -79,20 +79,24 @@ public class ChatServer extends Observable {
 		public void run() {
 			String message;
 			try{
-				while((message = reader.readLine())!=null){
-					// System.out.println("read"+ message);
-					setChanged();
-					notifyObservers(message);
+				while((message = reader.readLine()) != null){
+					
+					String firstLetter = Character.toString(message.charAt(0));
+					
+					if (firstLetter.equals("f")) {
+						setChanged();
+						notifyObservers(message);
+					}
+					
 				}
 			}catch(IOException e){
 				e.printStackTrace();
-				
 			}
-			
 			/* If the thread finishes because of a GUI closing, does 
 			 * control come here?
 			 */
 		}
+		
 	}
 
 }
