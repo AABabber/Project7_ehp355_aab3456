@@ -16,40 +16,47 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Observable;
 
-public class ChatServer extends Observable{
+public class ChatServer extends Observable {
 	
-	// private ArrayList<PrintWriter> clientOutputStreams;
-	// public int roomSize = 0;
+	private ArrayList<String> activeUsers;
 	private int port = 4343;	// TODO: Decide whether to have user defined port
 	private BufferedReader nameReader;
 
-	public void setUpNetworking() throws Exception{
-		// clientOutputStreams = new ArrayList<PrintWriter>();
+	public void setUpNetworking() throws Exception {
+		activeUsers = new ArrayList<String>();
 		@SuppressWarnings("resource")
 		ServerSocket serverSock = new ServerSocket(port);
 		while(true){
 		
 				Socket clientSocket = serverSock.accept();
-				
-				/* TODO: See if this method of getting the client's name is correct and fast enough
-				 * 
-				 * Note: readLine() should block
-				 */
 				nameReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream())); 
-				String name = nameReader.readLine();
-				
+				String name = nameReader.readLine();	
+				System.out.println("Connection good for: " + name); 
+
 				ClientObserver writer = new ClientObserver(clientSocket.getOutputStream(), name);
+				// TODO: Determine if order of this call matters
+				this.addObserver(writer); 
+				updateUsers(name);
+				
 				Thread t = new Thread(new ClientHandler(clientSocket));
 				t.start();
-				this.addObserver(writer);
-				System.out.println("Connection good");
-			
+				
 		}
 	}
 	
-	class ClientHandler implements Runnable{
+	private void updateUsers(String name) {
+		activeUsers.add(name);
+		for (String userName : activeUsers) {
+			String friendUpdate = "new:" + userName;
+			setChanged();
+			notifyObservers(friendUpdate);
+		}
+	}
+	
+	class ClientHandler implements Runnable {
 		private BufferedReader reader;
 		// private int id;
 		
@@ -63,13 +70,13 @@ public class ChatServer extends Observable{
 		 * it to the message and only process the first occurrence of each.
 		 */
 		
-		public ClientHandler(Socket clientSocket) throws IOException{
+		public ClientHandler(Socket clientSocket) throws IOException {
 			Socket sock = clientSocket;
 			reader = new BufferedReader(new InputStreamReader(sock.getInputStream()));
 			// id = i;
 		}
 		
-		public void run(){
+		public void run() {
 			String message;
 			try{
 				while((message = reader.readLine())!=null){
@@ -81,6 +88,10 @@ public class ChatServer extends Observable{
 				e.printStackTrace();
 				
 			}
+			
+			/* If the thread finishes because of a GUI closing, does 
+			 * control come here?
+			 */
 		}
 	}
 

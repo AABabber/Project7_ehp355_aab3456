@@ -24,7 +24,7 @@ public class ClientObserver extends PrintWriter implements Observer {
 	private String unusedSender;
 	private String[] receivers;
 	
-	public ClientObserver(OutputStream out, String name){
+	public ClientObserver(OutputStream out, String name) {
 		super(out);
 		this.name = name;
 	}
@@ -33,17 +33,27 @@ public class ClientObserver extends PrintWriter implements Observer {
 	/* Message format:
 	 * from:sender [tab] to:receiver1, receiver2, receiver3, ... [tab] [Actual message]
 	 */
-	public void update(Observable o, Object arg){
-		// DONE: Write update method
-		findNames(arg);
-		send(arg);
+	public void update(Observable o, Object arg) {
+		
+		// TODO: Add user list updates
+		String messageTag = ((String) arg).substring(0, 4);
+		
+		if (messageTag.equals("new:")) {
+			this.println((String) arg);
+			this.flush();
+		}
+		else {
+			findNames(arg);
+			send(arg);
+		}
 	}
 	
 	private void send(Object arg) {
 		for (String receiver : receivers) {
 			if (receiver.equals(name)) {
-				// System.out.println((String) arg); // TODO: Comment this when not testing
+				// System.out.println((String) arg);	// TODO: Comment this when not testing
 				this.println((String) arg);
+				this.flush();
 				break;
 			}
 		}

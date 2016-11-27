@@ -13,6 +13,8 @@ package assignment7;
 
 import java.io.*; 
 import java.net.*;
+import java.util.Scanner;
+
 // import java.util.Observable;
 import javafx.application.Application;
 import javafx.geometry.Pos;
@@ -38,7 +40,15 @@ public class ChatClient extends Application {
 	public String header;
 	*/
 	
-	@Override // Override the start method in the Application class
+	// TODO: Set host, port, and name using a login screen
+	private int port = 4343;
+	private String host = "127.0.0.1";
+	private BufferedReader reader;
+	private PrintWriter writer;
+	private String name;	// TODO: Don't allow there to exist duplicate usernames
+	private ListView<String> friendList;
+	
+	@Override 
 	public void start(Stage primaryStage) {
 		initView(primaryStage);
 		try {
@@ -65,8 +75,9 @@ public class ChatClient extends Application {
 		options.setAlignment(Pos.BASELINE_LEFT);
 		
 		// Left - item 2
-		// TODO: Populate friendList
-		ListView<String> friendList = new ListView<String>();
+		// DONE: Populate friendList
+		friendList = new ListView<String>();
+		friendList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 		ScrollPane friendView = new ScrollPane(friendList);
 		friendView.setLayoutX(0);
 		friendView.setLayoutY(50);
@@ -80,6 +91,7 @@ public class ChatClient extends Application {
 		startChat.setPrefSize(170, 40);
 		// The Font.font() method enables you to specify the font family name and size.
 		startChat.setFont(Font.font("System", 16));
+		// TODO: Call setOnAction - remember to clear friendList selection
 		
 		// Left container
 		AnchorPane sideBar = new AnchorPane();
@@ -99,8 +111,16 @@ public class ChatClient extends Application {
 		primaryStage.setWidth(500);
 		primaryStage.setHeight(455);
 		primaryStage.setResizable(false);
-		primaryStage.setTitle("Client Console"); // Stage title
 		primaryStage.setScene(scene); // Place scene in stage
+		
+		// DONE: Temporarily set name here; delete code when login screen is implemented
+		Scanner in = new Scanner(System.in);
+		System.out.print("Enter a name: ");
+		name = in.nextLine();
+		in.close();
+		System.out.println("Name is: " + name);
+		
+		primaryStage.setTitle("Client Console - " + name); // Stage title
 		primaryStage.show(); // Display stage
 		
 		// TODO: Include incoming field in JavaFX version
@@ -122,7 +142,7 @@ public class ChatClient extends Application {
 	
 	private void setUpNetworking() throws Exception {
 		
-		// TODO: Create host and port private variables which are set by user
+		// DONE: Create host and port private variables which are set by user
 		
 		/* BufferedReader and PrintWriter are better than DataInputStream and  
 		 * DataOutputStream for String processing
@@ -137,12 +157,17 @@ public class ChatClient extends Application {
 		writer = new PrintWriter(sock.getOutputStream());
 		System.out.println("networking established");  
 		*/
+		@SuppressWarnings("resource") 
+		Socket sock = new Socket(host, port);
+		InputStreamReader streamReader = new InputStreamReader(sock.getInputStream());
+		reader = new BufferedReader(streamReader); 
+		writer = new PrintWriter(sock.getOutputStream());
+		writer.println(name);	
+		writer.flush();
 		
-		// TODO: Decide whether to use lambda expression or inner class for thread
-		/*
 		Thread readerThread = new Thread(new IncomingReader());
 		readerThread.start();
-		*/
+	
 	}
 	
 	/*
@@ -159,7 +184,6 @@ public class ChatClient extends Application {
 	}
 	*/
 	
-	/*
 	class IncomingReader implements Runnable {
 	
 		public void run() {
@@ -167,13 +191,29 @@ public class ChatClient extends Application {
 			try {
 			
 				// TODO: Determine whether this condition is effectively endless
-				 * 
+				
 				while ((message = reader.readLine()) != null) {
-					incoming.append(message + "\n");
+					String messageTag = message.substring(0, 4);
+					/* If message doesn't being with "from", it's an update
+					 * to the online users.
+					 */
+					if (!messageTag.equals("from")) {
+						// Using tag "new:" for updates
+						String newUser = message.substring(4, message.length());
+						// DONE: This dynamically updates lists
+						if(!friendList.getItems().contains(newUser) && !newUser.equals(name)) {
+							friendList.getItems().add(newUser);
+						}
+					}
+					else {
+						// TODO: Process message
+					}
 				}
-			} catch (IOException ex) { ex.printStackTrace(); }
+			} catch (IOException ex) { 
+				ex.printStackTrace(); 
+			}
 		}
 		
 	}
-	*/
+	
 }
