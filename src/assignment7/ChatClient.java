@@ -82,8 +82,11 @@ public class ChatClient extends Application {
 		friendView.setLayoutX(0);
 		friendView.setLayoutY(50);
 		friendView.setPrefSize(200, 332);
-		friendView.setHbarPolicy(ScrollBarPolicy.NEVER);
-		
+		friendView.setHbarPolicy(ScrollBarPolicy.NEVER);	
+		friendView.setVbarPolicy(ScrollBarPolicy.AS_NEEDED);
+		friendList.prefWidthProperty().bind(friendView.widthProperty());
+		friendList.setPrefHeight(332);
+
 		// Left - item 3
 		Button startChat = new Button("Chat");
 		startChat.setLayoutX(15);
@@ -98,13 +101,17 @@ public class ChatClient extends Application {
 		sideBar.getChildren().addAll(options, friendView, startChat);
 		
 		// ---- Right (technically "Center") portion of main window ---- //
-		// TODO: Wrap inside a ScrollPane
 		TextArea clientConsole = new TextArea();
 		clientConsole.setEditable(false);
+		ScrollPane consolePane = new ScrollPane(clientConsole);
+		consolePane.setHbarPolicy(ScrollBarPolicy.NEVER);
+		consolePane.setVbarPolicy(ScrollBarPolicy.AS_NEEDED);
+		clientConsole.prefWidthProperty().bind(consolePane.widthProperty());
+		clientConsole.setPrefHeight(433);
 		
 		BorderPane mainPane = new BorderPane();
 		mainPane.setLeft(sideBar);
-		mainPane.setCenter(clientConsole);
+		mainPane.setCenter(consolePane);
 		
 		// Create a scene and place it in the stage
 		Scene scene = new Scene(mainPane, 500, 455);
