@@ -18,10 +18,14 @@ import java.util.Observer;
 
 public class ClientObserver extends PrintWriter implements Observer {
 	
+	// The name of the client we're implementing this Observer for
 	private String name;
 	//private String messagePayload;
 	@SuppressWarnings("unused")
-	private String unusedSender;
+	/* This variable functions as a convenient container 
+	 * when parsing the metadata.
+	 */
+	private String unusedSender;	
 	private String[] receivers;
 	
 	public ClientObserver(OutputStream out, String name) {
@@ -35,7 +39,7 @@ public class ClientObserver extends PrintWriter implements Observer {
 	 */
 	public void update(Observable o, Object arg) {
 		
-		// TODO: Add user list updates
+		// DONE: Add user list updates
 		String messageTag = ((String) arg).substring(0, 4);
 		
 		if (messageTag.equals("new:")) {
@@ -81,7 +85,7 @@ public class ClientObserver extends PrintWriter implements Observer {
 		// Strip the "to:" from the String of receivers
 		receiverString = receiverString.substring(3, receiverString.length());
 		
-		// A String is a CharSequence
+		// A String is a CharSequence - the parameter needed for contains()
 		String comma = ",";
 		if (!receiverString.contains(comma)) {
 			receivers = new String[1];
