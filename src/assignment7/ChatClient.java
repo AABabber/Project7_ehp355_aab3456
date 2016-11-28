@@ -17,7 +17,9 @@ import java.util.HashMap;
 import java.util.Scanner;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.SortedList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
@@ -36,7 +38,8 @@ public class ChatClient extends Application {
 	private BufferedReader reader;
 	private PrintWriter writer;
 	private String name;	// TODO: Don't allow there to exist duplicate usernames
-	private ListView<String> onlineList;
+	// TODO: Catch exceptions associated with clicking names in onlineList
+	private ListView<String> onlineList;	
 	private TextArea clientConsole;
 	private HashMap<String, Stage> currentChats;	
 	
@@ -79,6 +82,8 @@ public class ChatClient extends Application {
 		// Left - item 2
 		/* This is a list of all users currently online. Whenever a new user
 		 * logs in, the server updates this list for all clients.
+		 * 
+		 * TODO: Add a second tab for friends
 		 */
 		onlineList = new ListView<String>();
 		// Allow multiple selections in ListView
@@ -160,21 +165,8 @@ public class ChatClient extends Application {
 		
 		primaryStage.setTitle("Client Console - " + name); // Stage title
 		primaryStage.show(); // Display stage
+		// TODO: Specify what happens when console Stage closes
 		
-		// TODO: Include incoming field in JavaFX version
-		/*
-		incoming = new JTextArea(15, 50);	
-		incoming.setLineWrap(true); 
-		incoming.setWrapStyleWord(true); 
-		incoming.setEditable(false);
-		*/
-	
-		// TODO: Include outgoing field in JavaFX version
-		/*
-		outgoing = new JTextField(20); 
-		JButton sendButton = new JButton("Send"); 
-		sendButton.addActionListener(new SendButtonListener());
-		*/
 	} 
 	
 	private void setUpNetworking() throws Exception {
@@ -218,8 +210,14 @@ public class ChatClient extends Application {
 		@Override
 		public void handle(ActionEvent event) {
 			
-			// Get selected names
-			ObservableList<String> selected = onlineList.getSelectionModel().getSelectedItems();
+			// getSelectedItems() returns a read-only ObservableList of all selected items.
+			ObservableList<String> outOfOrderSelected = onlineList.getSelectionModel().getSelectedItems();
+			// DONE: Used to check for out of order names (ex. Bob, Carl versus Carl, Bob)
+			SortedList<String> selected = outOfOrderSelected.sorted();
+			
+			if (selected.size() == 0) {
+				return;
+			}
 			
 			/* We don't need to check if the selected names are online 
 			 * if we properly update onlineList upon client "leaving"
@@ -240,11 +238,10 @@ public class ChatClient extends Application {
 		 	 * If so, we switch focus to the existing chat. If there isn't an existing
 		 	 * chat, we create a new key-value pair in currentChats and populate the
 		 	 * window.
-		 	 * 
-		 	 * TODO: Check for out of order names (ex. Bob, Carl versus Carl, Bob)
 		 	 */ 
 			if (currentChats.containsKey(selectedNames)) {
 				Stage current = currentChats.get(selectedNames);
+				onlineList.getSelectionModel().clearSelection();
 				current.requestFocus();		
 			}
 			else {
@@ -280,6 +277,7 @@ public class ChatClient extends Application {
 			chatWindow.setHeight(400);
 			chatWindow.setScene(scene);
 			chatWindow.setTitle(name + " -- " + selectedNames);
+			// TODO: Define what happens when chat window closes
 			
 			/*
 			VBox test = (VBox) chatWindow.getScene().getRoot();
@@ -325,6 +323,10 @@ public class ChatClient extends Application {
 	}
 	
 	class IncomingReader implements Runnable {
+		
+		private String messagePayload;
+		private String sender;	
+		private String[] receivers;
 	
 		public void run() {
 			String message;	  // The input from the server
@@ -345,19 +347,70 @@ public class ChatClient extends Application {
 						String newUser = message.substring(4, message.length());
 						// DONE: This dynamically updates the ListView
 						if(!onlineList.getItems().contains(newUser) && !newUser.equals(name)) {
-							onlineList.getItems().add(newUser);
+							// This updates the GUI from the application thread
+							Platform.runLater(() -> onlineList.getItems().add(newUser));
 						}
 					}
 					
-					// First tag for messages is "from:"
+					/* Message format:
+					 * from:sender [tab] to:receiver1, receiver2, receiver3, ... [tab] [Actual message]
+					 */
 					else if (firstLetter.equals("f")) {	
 						// TODO: Process message
-						// Check if there's a chat between this client and the sender
+					
+						findNames(message);
+						
+						// Construct appropriate key for client using fields sender and receivers
+						
+						// Check if there's an existing chat for the received message
+						
+						/* If so, use the key to grab the appropriate Stage, and put
+						 * the message in the TextArea (from the application thread). 
+						 * 
+						 * If not, construct a new chat window (also from the application thread) using
+						 * the code from the end of ChatButtonHandler's handle method. After that,
+						 * put the message in the TextArea. 
+						 * 
+						 * Make sure to prepend the message with the user's name.
+						 */
+						
 					}
 					
 				}
 			} catch (IOException ex) { 
 				ex.printStackTrace(); 
+			}
+		}
+		
+		private void findNames(String arg) {
+			// It's not safe to use a regex as the user message might have tabs and whatnot
+			String message = arg;
+			
+			/* The first parameter in substring() is the beginning index, inclusive, and the 
+			 * second parameter is the ending index, exclusive.
+			 */
+			int fromEnd = message.indexOf('\t');
+			String fromString = message.substring(0, fromEnd);
+			
+			// Update message as a sender could have the string "to" in their name
+			message = arg.substring(fromEnd + 1, arg.length());
+			int receiveEnd = message.indexOf('\t');
+			String receiverString = message.substring(0, receiveEnd);
+			
+			messagePayload = arg.substring(receiveEnd + 1, arg.length());
+			sender = fromString.substring(5, fromString.length());
+			
+			// Strip the "to:" from the String of receivers
+			receiverString = receiverString.substring(3, receiverString.length());
+			
+			// A String is a CharSequence - the parameter needed for contains()
+			String comma = ",";
+			if (!receiverString.contains(comma)) {
+				receivers = new String[1];
+				receivers[0] = receiverString;
+			}
+			else {
+				receivers = receiverString.split(", ");
 			}
 		}
 		
