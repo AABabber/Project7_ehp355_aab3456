@@ -20,7 +20,6 @@ public class ClientObserver extends PrintWriter implements Observer {
 	
 	// The name of the client we're implementing this Observer for
 	private String name;
-	//private String messagePayload;
 	@SuppressWarnings("unused")
 	/* This variable functions as a convenient container 
 	 * when parsing the metadata.
@@ -79,7 +78,6 @@ public class ClientObserver extends PrintWriter implements Observer {
 		int receiveEnd = message.indexOf('\t');
 		String receiverString = message.substring(0, receiveEnd);
 		
-		//messagePayload = ((String) arg).substring(receiveEnd + 1, ((String) arg).length());
 		unusedSender = fromString.substring(5, fromString.length());
 		
 		// Strip the "to:" from the String of receivers

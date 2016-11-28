@@ -13,6 +13,9 @@ package assignment7;
 
 import java.io.*; 
 import java.net.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Scanner;
 
@@ -41,6 +44,7 @@ public class ChatClient extends Application {
 	// TODO: Catch exceptions associated with clicking names in onlineList
 	private ListView<String> onlineList;	
 	private TextArea clientConsole;
+	// TODO: Replace with thread-safe version or only access from GUI thread
 	private HashMap<String, Stage> currentChats;	
 	
 	@Override 
@@ -254,7 +258,7 @@ public class ChatClient extends Application {
 		
 		}
 		
-		private void populateChatWindow(Stage chatWindow, String selectedNames) {
+		public void populateChatWindow(Stage chatWindow, String selectedNames) {
 			
 			// TODO: Bind properties and wrap text for both of these areas 
 			TextArea chatContent = new TextArea();
@@ -279,10 +283,6 @@ public class ChatClient extends Application {
 			chatWindow.setTitle(name + " -- " + selectedNames);
 			// TODO: Define what happens when chat window closes
 			
-			/*
-			VBox test = (VBox) chatWindow.getScene().getRoot();
-			test.getChildren();
-			*/
 		}
 		
 	}
@@ -311,7 +311,7 @@ public class ChatClient extends Application {
 									 + "\t" + message;
 			
 			// TODO: Comment this when not testing
-			System.out.println("Outgoing message:" + "\n" + outgoingMessage); 
+			// System.out.println("Outgoing message:" + "\n" + outgoingMessage); 
 			
 			messageArea.setText("");
 			chatContent.appendText(name + ": " + message + "\n");
@@ -356,30 +356,71 @@ public class ChatClient extends Application {
 					 * from:sender [tab] to:receiver1, receiver2, receiver3, ... [tab] [Actual message]
 					 */
 					else if (firstLetter.equals("f")) {	
-						// TODO: Process message
-					
+						
+						// Update sender and receivers
 						findNames(message);
 						
-						// Construct appropriate key for client using fields sender and receivers
+						// Construct appropriate key for client using fields sender, receivers, and name
+						ArrayList<String> namesForKey = new ArrayList<String>(Arrays.asList(receivers));
+						namesForKey.add(sender);
+						Collections.sort(namesForKey);
+						namesForKey.remove(name);
 						
-						// Check if there's an existing chat for the received message
+						String key = "";
+						for (int i = 0; i < namesForKey.size(); i++) {
+							if (i == (namesForKey.size() - 1)) {
+								key = key + namesForKey.get(i);
+							}
+							else {
+								key = key + namesForKey.get(i) + ", ";
+							}
+						}
 						
-						/* If so, use the key to grab the appropriate Stage, and put
+						/* We check if there's an existing chat for the received message. 
+						 * If so, use the key to grab the appropriate Stage, and put
 						 * the message in the TextArea (from the application thread). 
 						 * 
-						 * If not, construct a new chat window (also from the application thread) using
-						 * the code from the end of ChatButtonHandler's handle method. After that,
-						 * put the message in the TextArea. 
+						 * If not, construct a new chat window (also from the application thread) 
+						 * using the code from the end of ChatButtonHandler's handle method. 
+						 * After that, put the message in the TextArea. 
 						 * 
 						 * Make sure to prepend the message with the user's name.
 						 */
-						
+						if (currentChats.containsKey(key)) {
+							updateChatWindow(key);
+						}
+						else {
+							createNewChatWindow(key);
+						}
+			
 					}
 					
 				}
 			} catch (IOException ex) { 
 				ex.printStackTrace(); 
 			}
+		}
+		
+		private void updateChatWindow(String key) {
+			Platform.runLater(() -> {
+				Stage currentWindow = currentChats.get(key);
+				VBox chatLayout = (VBox) currentWindow.getScene().getRoot();
+				TextArea chatDisplay = (TextArea) chatLayout.getChildren().get(0);
+				chatDisplay.appendText(sender + ": " + messagePayload + "\n");
+			});
+		}
+		
+		private void createNewChatWindow(String key) {
+			Platform.runLater(() -> {
+				Stage newChatWindow = new Stage();
+				ChatButtonHandler helperClass = new ChatButtonHandler();
+				helperClass.populateChatWindow(newChatWindow, key);
+				currentChats.put(key, newChatWindow);
+				VBox chatLayout = (VBox) newChatWindow.getScene().getRoot();
+				TextArea chatDisplay = (TextArea) chatLayout.getChildren().get(0);
+				chatDisplay.appendText(sender + ": " + messagePayload + "\n");
+				newChatWindow.show();
+			});
 		}
 		
 		private void findNames(String arg) {
@@ -397,7 +438,7 @@ public class ChatClient extends Application {
 			int receiveEnd = message.indexOf('\t');
 			String receiverString = message.substring(0, receiveEnd);
 			
-			messagePayload = arg.substring(receiveEnd + 1, arg.length());
+			messagePayload = message.substring(receiveEnd + 1, message.length());
 			sender = fromString.substring(5, fromString.length());
 			
 			// Strip the "to:" from the String of receivers
