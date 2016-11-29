@@ -14,20 +14,25 @@ package assignment7;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Observable;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ChatServer extends Observable {
 	
 	// A list of the users currently "online"
 	private ArrayList<String> activeUsers;	
+	private ConcurrentHashMap<String, ArrayList<String>> chatHistory;
 	private int port = 4343;	// TODO: Decide whether to have user defined port
 	private BufferedReader nameReader;	// An input stream reader to determine a client's name
 
 	public void setUpNetworking() throws Exception {
 		activeUsers = new ArrayList<String>();
+		chatHistory = new ConcurrentHashMap<String, ArrayList<String>>();	// TODO: Double check this initialization
 		@SuppressWarnings("resource")
 		ServerSocket serverSock = new ServerSocket(port);	// Set up the server socket
 		// Serve clients indefinitely
@@ -93,10 +98,12 @@ public class ChatServer extends Observable {
 	class ClientHandler implements Runnable {
 		
 		private BufferedReader reader;
+		private PrintWriter historyWriter;
 		
 		public ClientHandler(Socket clientSocket) throws IOException {
 			Socket sock = clientSocket;
 			reader = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+			historyWriter = new PrintWriter(sock.getOutputStream());
 		}
 		
 		public void run() {
@@ -112,6 +119,20 @@ public class ChatServer extends Observable {
 						setChanged();
 						// Calls update() for each Observer
 						notifyObservers(message);
+						updateHistory(message);
+					}else if(firstLetter.equals("h")){
+						String userName = message.substring(5, message.length());
+						if(!chatHistory.containsKey(userName)) {
+							continue;
+						}
+						ArrayList<String> histToSend = chatHistory.get(userName);
+						// TODO: watch for possible lage do to for loop, if so, 
+						// threading could be possible solution
+						for(String s : histToSend){
+							historyWriter.println("hist:"+s);
+							historyWriter.flush();
+						}
+						
 					}
 					
 				}
@@ -121,6 +142,58 @@ public class ChatServer extends Observable {
 			/* If the thread finishes because of a GUI closing, does 
 			 * control come here?
 			 */
+		}
+		
+		private void updateHistory(String message) {
+			ArrayList<String> userHist = findName(message);
+			for(String user : userHist) {
+				if(chatHistory.containsKey(user)){
+					ArrayList<String> temp = chatHistory.get(user);
+					temp.add(message);
+				}else{
+					ArrayList<String> newHist = new ArrayList<String>();
+					chatHistory.put(user, newHist);
+					newHist.add(message);
+				}
+			}
+		}
+		
+		private ArrayList<String> findName(String arg){
+			// It's not safe to use a regex as the user message might have tabs and whatnot
+			// TODO: Prevent user from having tabs, commas, or spaces in their username
+			String message = arg;
+			ArrayList<String> users = new ArrayList<String>();
+			
+			/* The first parameter is the beginning index, inclusive, and the 
+			 * second parameter is the ending index, exclusive.
+			 */
+			int fromEnd = message.indexOf('\t');
+			String fromString = message.substring(0, fromEnd);
+			
+			// Update message as a sender could have the string "to" in their name
+			message = arg.substring(fromEnd + 1, arg.length());
+			int receiveEnd = message.indexOf('\t');
+			String receiverString = message.substring(0, receiveEnd);
+			
+			users.add(fromString.substring(5, fromString.length()));
+			
+			// Strip the "to:" from the String of receivers
+			receiverString = receiverString.substring(3, receiverString.length());
+			
+			// A String is a CharSequence - the parameter needed for contains()
+			String comma = ",";
+			if (!receiverString.contains(comma)) {
+				users.add(receiverString);
+			}
+			else {
+				String[] receivers = receiverString.split(", ");
+				for (String r : receivers) {
+					users.add(r);
+				}
+			}
+			
+			Collections.sort(users);
+			return users;
 		}
 		
 	}

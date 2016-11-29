@@ -73,6 +73,7 @@ public class ChatClient extends Application {
 		 */
 		MenuButton options = new MenuButton("Options");
 		MenuItem history = new MenuItem("Chat History  ");
+		history.setOnAction(new ChatHistoryHandler());
 		MenuItem requests = new MenuItem("Friend Request  ");
 		MenuItem pass = new MenuItem("Change Password  ");
 		options.getItems().addAll(history, requests, pass);	// Add all options to the menu
@@ -136,6 +137,7 @@ public class ChatClient extends Application {
 		 */
 		clientConsole = new TextArea();
 		clientConsole.setEditable(false);
+		clientConsole.setWrapText(true);
 		// Container for the console which allows scrolling
 		ScrollPane consolePane = new ScrollPane(clientConsole);	
 		// Formatting the console area
@@ -165,7 +167,7 @@ public class ChatClient extends Application {
 		System.out.print("Enter a name: ");
 		name = in.nextLine();
 		in.close();
-		System.out.println("Name is: " + name);
+		System.out.println("Name is: " + name);	
 		
 		primaryStage.setTitle("Client Console - " + name); // Stage title
 		primaryStage.show(); // Display stage
@@ -173,7 +175,7 @@ public class ChatClient extends Application {
 		
 	} 
 	
-	private void setUpNetworking() throws Exception {
+	private void setUpNetworking() throws Exception {	
 		
 		// DONE: Create host and port private variables which are set by user
 		
@@ -208,7 +210,19 @@ public class ChatClient extends Application {
 	
 	// ----------------------------------------- INNER CLASSES ----------------------------------------- //
 	
+	class ChatHistoryHandler implements EventHandler<ActionEvent> {
+
+		@Override
+		public void handle(ActionEvent event) {
+			clientConsole.appendText("Outputting chat history... " + "\n");
+			writer.println("hist:"+name);
+			writer.flush();
+			
+		}
 		
+		
+	}
+	
 	class ChatButtonHandler implements EventHandler<ActionEvent> {
 
 		@Override
@@ -246,6 +260,7 @@ public class ChatClient extends Application {
 			if (currentChats.containsKey(selectedNames)) {
 				Stage current = currentChats.get(selectedNames);
 				onlineList.getSelectionModel().clearSelection();
+				current.show();
 				current.requestFocus();		
 			}
 			else {
@@ -395,6 +410,14 @@ public class ChatClient extends Application {
 			
 					}
 					
+					else if(firstLetter.equals("h")){
+						String histItem = message.substring(5, message.length());
+						Platform.runLater(() -> {
+							clientConsole.appendText(histItem + "\n");
+						});
+						
+					}
+					
 				}
 			} catch (IOException ex) { 
 				ex.printStackTrace(); 
@@ -407,6 +430,7 @@ public class ChatClient extends Application {
 				VBox chatLayout = (VBox) currentWindow.getScene().getRoot();
 				TextArea chatDisplay = (TextArea) chatLayout.getChildren().get(0);
 				chatDisplay.appendText(sender + ": " + messagePayload + "\n");
+				currentWindow.show();
 			});
 		}
 		
