@@ -11,6 +11,7 @@
 
 package assignment7;
 
+import java.awt.Insets;
 import java.io.*; 
 import java.net.*;
 import java.util.ArrayList;
@@ -42,6 +43,7 @@ public class ChatClient extends Application {
 	private PrintWriter writer;
 	private String name;	// TODO: Don't allow there to exist duplicate usernames
 	// TODO: Catch exceptions associated with clicking names in onlineList
+	private String passwd;
 	private ListView<String> onlineList;	
 	private TextArea clientConsole;
 	// TODO: Replace with thread-safe version or only access from GUI thread
@@ -50,16 +52,105 @@ public class ChatClient extends Application {
 	@Override 
 	public void start(Stage primaryStage) {
 		currentChats = new HashMap<String, Stage>();
-		initView(primaryStage);
-		try {
-			setUpNetworking();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		loginView(primaryStage);
+		
 	}
 	
 	
 	// ---------------------------------------- PRIVATE METHODS ---------------------------------------- //
+	
+	//function to handle login GUI
+	private void loginView(Stage primaryStage){
+		GridPane grid = new GridPane();
+        grid.setAlignment(Pos.CENTER);
+        grid.setHgap(10);
+        grid.setVgap(10);
+        //grid.setPadding(new Insets(25, 25, 25, 25));
+		
+		Button close = new Button("Close");
+		
+		close.setFont(Font.font("System", 16));
+		//close.setOnAction(new CloseLoginHandler());
+		
+		Button login = new Button("Login/Create Account");
+		
+		login.setFont(Font.font("System", 16));
+		//login.setOnAction(new LoginHandler());
+		
+		Label loginLabel = new Label("Login:");
+		Label passwdLabel = new Label("Password:");
+		Label portLabel = new Label("Port:");
+		Label hostLabel = new Label("Host:");
+		
+		TextField loginText = new TextField();
+		TextField passwdText = new PasswordField();
+		TextField portText = new TextField();
+		TextField hostText = new TextField();
+		
+		
+		// using grid and hbox
+		grid.add(loginLabel, 0, 1);
+		grid.add(loginText, 1, 1);
+		grid.add(passwdLabel, 0, 2);
+		grid.add(passwdText, 1, 2);
+		grid.add(portLabel, 0, 3);
+		grid.add(portText, 1, 3);
+		grid.add(hostLabel, 0, 4);
+		grid.add(hostText, 1, 4);
+		
+		HBox hbBtnLogin = new HBox(10);
+        hbBtnLogin.setAlignment(Pos.BOTTOM_RIGHT);
+        hbBtnLogin.getChildren().add(login);
+        grid.add(hbBtnLogin, 1, 5);
+        
+        HBox hbBtnClose = new HBox(10);
+        hbBtnClose.setAlignment(Pos.BOTTOM_LEFT);
+        hbBtnClose.getChildren().add(close);
+        grid.add(hbBtnClose, 0, 5);
+        
+        close.setOnAction(new EventHandler<ActionEvent>() {
+
+            @Override
+            public void handle(ActionEvent e) {
+                System.exit(0);
+            }
+        });
+        
+        login.setOnAction(new EventHandler<ActionEvent>(){
+        	@Override
+        	public void handle(ActionEvent e){
+        		name = loginText.getText().toString();
+        		passwd = passwdText.getText().toString();
+        		port = Integer.parseInt(portText.getText().toString());
+        		host = hostText.getText().toString();
+        		try {
+        			setUpNetworking();
+        		} catch (Exception exc) {
+        			exc.printStackTrace();
+        		}
+        		initView(primaryStage);
+
+        	}
+        });
+        
+				
+		// Create a scene and place it in the stage
+		Scene scene = new Scene(grid, 450, 400);
+		//primaryStage.setWidth(500);
+		//primaryStage.setHeight(455);
+		/* There are a lot of intricate components to this window, 
+		 * so allowing resizing might inhibit the intended view. As such,
+		 * we only allow one fixed size.
+		 */
+		primaryStage.setResizable(false);
+		primaryStage.setScene(scene); // Place scene in stage
+		
+		primaryStage.show();
+		
+		
+		
+	}
+	
 	
 	
 	private void initView(Stage primaryStage) {
@@ -163,15 +254,18 @@ public class ChatClient extends Application {
 		primaryStage.setScene(scene); // Place scene in stage
 		
 		// DONE: Temporarily set name here; delete code when login screen is implemented
-		Scanner in = new Scanner(System.in);
-		System.out.print("Enter a name: ");
-		name = in.nextLine();
-		in.close();
-		System.out.println("Name is: " + name);	
+		//Scanner in = new Scanner(System.in);
+		//System.out.print("Enter a name: ");
+		//name = in.nextLine();
+		//in.close();
+		//System.out.println("Name is: " + name);	
 		
 		primaryStage.setTitle("Client Console - " + name); // Stage title
 		primaryStage.show(); // Display stage
 		// TODO: Specify what happens when console Stage closes
+		
+		Thread readerThread = new Thread(new IncomingReader());
+		readerThread.start();
 		
 	} 
 	
@@ -203,8 +297,7 @@ public class ChatClient extends Application {
 		 * in one thread, the application would likely freeze up for several seconds
 		 * at a time after every action.
 		 */
-		Thread readerThread = new Thread(new IncomingReader());
-		readerThread.start();
+		
 	}
 	
 	
