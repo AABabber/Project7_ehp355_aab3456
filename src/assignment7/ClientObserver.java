@@ -45,6 +45,14 @@ public class ClientObserver extends PrintWriter implements Observer {
 			this.println((String) arg);
 			this.flush();
 		}
+		else if (messageTag.equals("req:")) {
+			findRecipient(arg);
+			send(arg);
+		}
+		else if (messageTag.equals("rep:")) {
+			findOriginalSender(arg);
+			send(arg);
+		}
 		else {
 			findNames(arg);
 			send(arg);
@@ -54,12 +62,51 @@ public class ClientObserver extends PrintWriter implements Observer {
 	private void send(Object arg) {
 		for (String receiver : receivers) {
 			if (receiver.equals(name)) {
-				// System.out.println((String) arg);	// TODO: Comment this when not testing
+				System.out.println((String) arg + " -- ClientObserver");	// TODO: Comment this when not testing
 				this.println((String) arg);
 				this.flush();
 				break;
 			}
 		}
+	}
+	
+	@SuppressWarnings("unused")
+	// Parsing message of the form "req:sender [tab] to:recipient"
+	private void findRecipient(Object arg) {
+		String message = (String) arg;
+		int senderEnd = message.indexOf('\t');
+		String senderString = message.substring(0, senderEnd);
+		
+		// After this line, message will be equal to "to:recipient"
+		message = ((String) arg).substring(senderEnd + 1, ((String) arg).length());
+		int colonIndex = message.indexOf(':');
+		String recipient = message.substring(colonIndex + 1, message.length());
+		receivers = new String[1];
+		receivers[0] = recipient;
+	}
+	
+	@SuppressWarnings("unused")
+	// Message form: "rep:recipient [tab] to:sender [tab] [reply]"
+	private void findOriginalSender(Object arg) {
+		String message = (String) arg;
+		String cutMessage;
+		int replyEnd = message.indexOf('\t');
+		
+		// replyString = "rep:recipient"
+		String replyString = message.substring(0, replyEnd);
+		int colonIndex = replyString.indexOf(':');
+		String replier = replyString.substring(colonIndex + 1, replyString.length());
+		
+		// cutMessage = "to:sender [tab] [reply]"
+		cutMessage = message.substring(replyEnd + 1, message.length());
+		int senderEnd = cutMessage.indexOf('\t');
+		// senderString = "to:sender"
+		String senderString = cutMessage.substring(0, senderEnd);
+		colonIndex = senderString.indexOf(':');
+		String originalSender = senderString.substring(colonIndex + 1, senderString.length());
+		
+		receivers = new String[1];
+		receivers[0] = originalSender;
 	}
 	
 	private void findNames(Object arg) {

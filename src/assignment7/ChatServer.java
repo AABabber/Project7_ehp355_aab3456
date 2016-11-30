@@ -27,14 +27,17 @@ public class ChatServer extends Observable {
 	// A list of the users currently "online"
 	private ArrayList<String> activeUsers;	
 	private ConcurrentHashMap<String, ArrayList<String>> chatHistory;
+	private ConcurrentHashMap<String, ArrayList<String>> friendLists;
 	private int port = 4343;	// TODO: Decide whether to have user defined port
 	private BufferedReader nameReader;	// An input stream reader to determine a client's name
 
 	public void setUpNetworking() throws Exception {
 		activeUsers = new ArrayList<String>();
 		chatHistory = new ConcurrentHashMap<String, ArrayList<String>>();	// TODO: Double check this initialization
+		friendLists = new ConcurrentHashMap<String, ArrayList<String>>();
 		@SuppressWarnings("resource")
 		ServerSocket serverSock = new ServerSocket(port);	// Set up the server socket
+		
 		// Serve clients indefinitely
 		while(true){
 			
@@ -114,6 +117,10 @@ public class ChatServer extends Observable {
 					
 					// Determines what kind of action the client is performing
 					String firstLetter = Character.toString(message.charAt(0));
+					String tag = message.substring(0, 4);
+					
+					System.out.println(message + " -- ClientHandler");	// TODO: Comment this when not testing
+					System.out.println(tag + " -- ClientHandler");	// TODO: Comment this when not testing
 					
 					// The client is sending a message
 					if (firstLetter.equals("f")) {
@@ -121,7 +128,9 @@ public class ChatServer extends Observable {
 						// Calls update() for each Observer
 						notifyObservers(message);
 						updateHistory(message);
-					}else if(firstLetter.equals("h")){
+					}
+					
+					else if (firstLetter.equals("h")) {
 						String userName = message.substring(5, message.length());
 						if(!chatHistory.containsKey(userName)) {
 							continue;
@@ -130,10 +139,22 @@ public class ChatServer extends Observable {
 						// TODO: watch for possible lage do to for loop, if so, 
 						// threading could be possible solution
 						for(String s : histToSend){
-							historyWriter.println("hist:"+s);
+							historyWriter.println("hist:" + s);
 							historyWriter.flush();
 						}
-						
+					}
+					
+					// A client is sending a friend request
+					else if (tag.equals("req:")) {
+						setChanged();
+						notifyObservers(message);
+					}
+					
+					// A client is receiving a reply to a friend request
+					else if (tag.equals("rep:")) {
+						updateFriendLists(message);	// TODO: Test update of friendLists
+						setChanged();
+						notifyObservers(message);
 					}
 					
 				}
@@ -196,6 +217,45 @@ public class ChatServer extends Observable {
 			
 			Collections.sort(users);
 			return users;
+		}
+		
+		// Message form: "rep:recipient [tab] to:sender [tab] [reply]"
+		private void updateFriendLists(String message) {
+			
+			String cutMessage;
+			int replyEnd = message.indexOf('\t');
+			
+			// replyString = "rep:recipient"
+			String replyString = message.substring(0, replyEnd);
+			int colonIndex = replyString.indexOf(':');
+			String replier = replyString.substring(colonIndex + 1, replyString.length());
+			
+			// cutMessage = "to:sender [tab] [reply]"
+			cutMessage = message.substring(replyEnd + 1, message.length());
+			
+			System.out.println(cutMessage + " -- ClientHandler/updateFriendLists");	// TODO: Comment this when not testing
+			
+			int senderEnd = cutMessage.indexOf('\t');
+			// senderString = "to:sender"
+			String senderString = cutMessage.substring(0, senderEnd);
+			colonIndex = senderString.indexOf(':');
+			String originalSender = senderString.substring(colonIndex + 1, senderString.length());
+			
+			// reply = [reply]
+			String reply = cutMessage.substring(senderEnd + 1, cutMessage.length());
+			
+			if (reply.equals("Y")) {
+				ArrayList<String> replierList = friendLists.get(replier);
+				ArrayList<String> senderList = friendLists.get(originalSender);
+				if (replierList == null) {
+					replierList = new ArrayList<String>();
+				}
+				if (senderList == null) {
+					senderList = new ArrayList<String>();
+				}
+				replierList.add(originalSender);
+				senderList.add(replier);
+			}
 		}
 		
 	}

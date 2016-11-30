@@ -251,15 +251,15 @@ public class ChatClient extends Application {
 				ObservableList<String> friends = friendList.getItems();
 				if (!(friends.contains(selected))) {
 					String message = "req:" + name + "\t" + "to:" + selected;
+					System.out.println(message + " -- FriendRequestHandler");	// TODO: Comment this when not testing
 					writer.println(message);
 					writer.flush();
+					requestWindow.close();
 				}
 				else {
-					// TODO: Replace with a GUI update
+					// TODO: Replace with output to client console
 					System.out.println(selected + " is already on your friend list");
 				}
-				
-				requestWindow.close();
 					
 			});
 			
@@ -270,6 +270,40 @@ public class ChatClient extends Application {
 			requestWindow.setTitle(name + " -- Friend Request");
 			requestWindow.show();
 		}
+	}
+	
+	class FriendReplyHandler implements EventHandler<ActionEvent> {
+		
+		private Stage stage;
+		private String sender;
+		private String message;
+		
+		public FriendReplyHandler(Stage stage, String sender) {
+			this.stage = stage;
+			this.sender = sender;
+			this.message = null;
+		}
+
+		@Override
+		public void handle(ActionEvent event) {
+			Button reply = (Button) event.getSource();	// TODO: Check getSource()
+			String replyText = reply.getText();
+			
+			if (replyText.equals("Accept")) {
+				friendList.getItems().add(sender);
+				message = "rep:" + name + "\t" + "to:" + sender + "\t" + "Y";
+			}
+			else {
+				message = "rep:" + name + "\t" + "to:" + sender + "\t" + "N";
+			}
+			
+			System.out.println(message + " -- FriendReplyHandler");	// TODO: Comment this when not testing
+			
+			writer.println(message);
+			writer.flush();
+			stage.close();
+		}
+		
 	}
 	
 	class ChatButtonHandler implements EventHandler<ActionEvent> {
@@ -405,6 +439,7 @@ public class ChatClient extends Application {
 					 * we're receiving from the server.
 					 */
 					String firstLetter = Character.toString(message.charAt(0));
+					String messageTag = message.substring(0, 4);
 					
 					// Using tag "new:" for onlineList updates
 					if (firstLetter.equals("n")) {	
@@ -459,11 +494,21 @@ public class ChatClient extends Application {
 			
 					}
 					
-					else if(firstLetter.equals("h")){
+					// Receiving a chat history item
+					else if (firstLetter.equals("h")) {
 						String histItem = message.substring(5, message.length());
 						Platform.runLater(() -> {
 							clientConsole.appendText(histItem + "\n");
 						});
+					}
+					
+					// Receiving a friend request
+					else if (messageTag.equals("req:")) {
+						receiveRequest(message);
+					}
+					
+					// Receiving response to sent friend request
+					else if (messageTag.equals("rep:")) {
 						
 					}
 					
@@ -526,6 +571,48 @@ public class ChatClient extends Application {
 			else {
 				receivers = receiverString.split(", ");
 			}
+		}
+		
+		private void receiveRequest(String message) {
+			
+			int senderEnd = message.indexOf('\t');
+			
+			// senderString = "req:sender"
+			String senderString = message.substring(0, senderEnd);
+			int colonIndex = senderString.indexOf(':');
+			sender = senderString.substring(colonIndex + 1, senderString.length());
+			
+			Platform.runLater(() -> {
+				Stage replyWindow = new Stage();
+				AnchorPane replyLayout = new AnchorPane();
+				replyLayout.setPrefSize(240, 250);
+				
+				TextArea senderMessage = new TextArea();
+				senderMessage.setText(sender + " sent a friend request");
+				senderMessage.setWrapText(true);
+				senderMessage.setEditable(false);
+				senderMessage.setPrefSize(200, 46);
+				senderMessage.setLayoutX(20);
+				senderMessage.setLayoutY(50);
+				
+				Button accept = new Button("Accept");
+				accept.setPrefSize(84, 40);
+				accept.setLayoutX(78);
+				accept.setLayoutY(117);
+				accept.setOnAction(new FriendReplyHandler(replyWindow, sender));
+				Button decline = new Button("Decline");
+				decline.setPrefSize(84, 40);
+				decline.setLayoutX(78);
+				decline.setLayoutY(173);
+				decline.setOnAction(new FriendReplyHandler(replyWindow, sender));
+				
+				replyLayout.getChildren().addAll(senderMessage, accept, decline);
+				Scene scene = new Scene(replyLayout, 240, 250);
+				replyWindow.setResizable(false);
+				replyWindow.setScene(scene);
+				replyWindow.setTitle(name + " -- Reply to Request");
+				replyWindow.show();
+			});
 		}
 		
 	}
