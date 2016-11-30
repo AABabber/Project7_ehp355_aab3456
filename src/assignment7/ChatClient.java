@@ -420,7 +420,49 @@ public class ChatClient extends Application {
 	class changePasswdHandler implements EventHandler<ActionEvent>{
 		@Override
 		public void handle(ActionEvent event){
+			GridPane grid = new GridPane();
+	        grid.setAlignment(Pos.CENTER);
+	        grid.setHgap(10);
+	        grid.setVgap(10);
+	        
 			
+			Button passwdButton = new Button("Change Password");
+			
+			passwdButton.setFont(Font.font("System", 16));
+			
+		
+			Label passwdLabel = new Label("New Password:");
+			
+			TextField passwdText = new PasswordField();
+			
+			
+			// using grid and hbox
+			
+			grid.add(passwdLabel, 0, 2);
+			grid.add(passwdText, 1, 2);
+			
+			HBox hbBtnCPasswd = new HBox(10);
+	        hbBtnCPasswd.setAlignment(Pos.BOTTOM_CENTER);
+	        hbBtnCPasswd.getChildren().add(passwdButton);
+	        grid.add(hbBtnCPasswd, 1, 5);
+	        
+	        //button clicked
+	        passwdButton.setOnAction(new EventHandler<ActionEvent>() {
+
+	            @Override
+	            public void handle(ActionEvent e) {
+	                passwd = passwdText.getText().toString();
+	                writer.println("cp:"+name+"\t"+passwd);
+	                writer.flush();
+	                
+	                initView(MasterStage);
+	            }
+	        });
+	        Scene scene = new Scene(grid, 450, 400);
+	     	MasterStage.setResizable(false);
+	     	MasterStage.setScene(scene); // Place scene in stage
+	     	MasterStage.show();
+	        
 		}
 	}
 	

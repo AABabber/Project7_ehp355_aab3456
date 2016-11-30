@@ -224,6 +224,14 @@ public class ChatServer extends Observable {
 							historyWriter.flush();
 						}
 						
+					}else if(firstLetter.equals("c")){
+						
+						//NEED to check if parsing string correctly
+						String userName = message.substring(3,message.indexOf("\t"));
+						String newPasswd = message.substring(message.indexOf("\t")+1,message.length());
+						System.out.println(newPasswd);
+						userAndPasswd.put(userName,newPasswd);
+						
 					}
 					
 				}
