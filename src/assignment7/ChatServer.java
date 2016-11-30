@@ -107,6 +107,7 @@ public class ChatServer extends Observable {
 		}
 		
 		public void run() {
+			
 			String message;		// The input from the client
 			try{
 				while((message = reader.readLine()) != null){
@@ -142,6 +143,7 @@ public class ChatServer extends Observable {
 			/* If the thread finishes because of a GUI closing, does 
 			 * control come here?
 			 */
+			System.out.println("A client has left");
 		}
 		
 		private void updateHistory(String message) {

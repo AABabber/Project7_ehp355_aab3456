@@ -42,7 +42,8 @@ public class ChatClient extends Application {
 	private PrintWriter writer;
 	private String name;	// TODO: Don't allow there to exist duplicate usernames
 	// TODO: Catch exceptions associated with clicking names in onlineList
-	private ListView<String> onlineList;	
+	private ListView<String> onlineList;
+	private ListView<String> friendList;
 	private TextArea clientConsole;
 	// TODO: Replace with thread-safe version or only access from GUI thread
 	private HashMap<String, Stage> currentChats;	
@@ -50,6 +51,7 @@ public class ChatClient extends Application {
 	@Override 
 	public void start(Stage primaryStage) {
 		currentChats = new HashMap<String, Stage>();
+		friendList = new ListView<String>();
 		initView(primaryStage);
 		try {
 			setUpNetworking();
@@ -75,6 +77,7 @@ public class ChatClient extends Application {
 		MenuItem history = new MenuItem("Chat History  ");
 		history.setOnAction(new ChatHistoryHandler());
 		MenuItem requests = new MenuItem("Friend Request  ");
+		requests.setOnAction(new FriendRequestHandler());
 		MenuItem pass = new MenuItem("Change Password  ");
 		options.getItems().addAll(history, requests, pass);	// Add all options to the menu
 		// Set the formatting of the drop down menu
@@ -163,6 +166,7 @@ public class ChatClient extends Application {
 		primaryStage.setScene(scene); // Place scene in stage
 		
 		// DONE: Temporarily set name here; delete code when login screen is implemented
+		// Note: we're asking the client for their name before we open a connection
 		Scanner in = new Scanner(System.in);
 		System.out.print("Enter a name: ");
 		name = in.nextLine();
@@ -183,7 +187,7 @@ public class ChatClient extends Application {
 		 * DataOutputStream for String processing
 		 */
 		@SuppressWarnings("resource") 
-		// Create a new client socket
+		// Create a new client socket 
 		Socket sock = new Socket(host, port);	
 		// Get the client socket's input stream
 		InputStreamReader streamReader = new InputStreamReader(sock.getInputStream());
@@ -217,10 +221,55 @@ public class ChatClient extends Application {
 			clientConsole.appendText("Outputting chat history... " + "\n");
 			writer.println("hist:"+name);
 			writer.flush();
-			
 		}
 		
-		
+	}
+	
+	class FriendRequestHandler implements EventHandler<ActionEvent> {
+
+		@Override
+		public void handle(ActionEvent event) {
+			
+			Stage requestWindow = new Stage();
+			
+			AnchorPane requestLayout = new AnchorPane();
+			requestLayout.setPrefSize(240, 250);
+			ComboBox<String> available = new ComboBox<String>();
+			available.setPromptText("Online Users");
+			available.setItems(onlineList.getItems());
+			available.setPrefSize(150, 40);
+			available.setLayoutX(45);
+			available.setLayoutY(56);
+			Button sendRequest = new Button("Send Request");
+			sendRequest.setPrefSize(122, 54);
+			sendRequest.setLayoutX(59);
+			sendRequest.setLayoutY(125);
+			sendRequest.setOnAction((ActionEvent e) -> {
+				
+				// TODO: Output some text if selected name is already in friendList
+				String selected = available.getSelectionModel().getSelectedItem();
+				ObservableList<String> friends = friendList.getItems();
+				if (!(friends.contains(selected))) {
+					String message = "req:" + name + "\t" + "to:" + selected;
+					writer.println(message);
+					writer.flush();
+				}
+				else {
+					// TODO: Replace with a GUI update
+					System.out.println(selected + " is already on your friend list");
+				}
+				
+				requestWindow.close();
+					
+			});
+			
+			requestLayout.getChildren().addAll(available, sendRequest);
+			Scene scene = new Scene(requestLayout, 240, 250);
+			requestWindow.setResizable(false);
+			requestWindow.setScene(scene);
+			requestWindow.setTitle(name + " -- Friend Request");
+			requestWindow.show();
+		}
 	}
 	
 	class ChatButtonHandler implements EventHandler<ActionEvent> {
