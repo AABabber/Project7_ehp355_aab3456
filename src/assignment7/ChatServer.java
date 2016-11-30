@@ -17,8 +17,10 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Observable;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -136,7 +138,7 @@ public class ChatServer extends Observable {
 							continue;
 						}
 						ArrayList<String> histToSend = chatHistory.get(userName);
-						// TODO: watch for possible lage do to for loop, if so, 
+						// TODO: Watch for possible lag due to for loop, if so, 
 						// threading could be possible solution
 						for(String s : histToSend){
 							historyWriter.println("hist:" + s);

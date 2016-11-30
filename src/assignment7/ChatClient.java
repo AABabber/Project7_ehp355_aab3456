@@ -13,9 +13,11 @@ package assignment7;
 
 import java.io.*; 
 import java.net.*;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Scanner;
 
@@ -35,7 +37,6 @@ import javafx.scene.text.Font;
 
 public class ChatClient extends Application {
 	
-	// TODO: Set host, port, and name using a login screen
 	private int port = 4343;
 	private String host = "127.0.0.1";
 	private BufferedReader reader;
@@ -78,8 +79,17 @@ public class ChatClient extends Application {
 		history.setOnAction(new ChatHistoryHandler());
 		MenuItem requests = new MenuItem("Friend Request  ");
 		requests.setOnAction(new FriendRequestHandler());
+		
+		MenuItem showFriends = new MenuItem("Show Friends  ");
+		showFriends.setOnAction((ActionEvent e) -> {
+			clientConsole.appendText("\n" + "Showing friends: " + "\n");
+			for (String friend : friendList.getItems()) {
+				clientConsole.appendText("\n" + friend);
+			}
+		});
+		
 		MenuItem pass = new MenuItem("Change Password  ");
-		options.getItems().addAll(history, requests, pass);	// Add all options to the menu
+		options.getItems().addAll(history, requests, pass, showFriends);	// Add all options to the menu
 		// Set the formatting of the drop down menu
 		options.setLayoutX(30);
 		options.setLayoutY(10);
@@ -102,7 +112,7 @@ public class ChatClient extends Application {
 		onlineView.setLayoutY(50);
 		onlineView.setPrefSize(200, 332);
 		onlineView.setHbarPolicy(ScrollBarPolicy.NEVER);	// Don't show a horizontal scoll bar
-		onlineView.setVbarPolicy(ScrollBarPolicy.AS_NEEDED);
+		onlineView.setVbarPolicy(ScrollBarPolicy.NEVER);
 		onlineList.prefWidthProperty().bind(onlineView.widthProperty());
 		onlineList.setPrefHeight(332);
 
@@ -130,6 +140,7 @@ public class ChatClient extends Application {
 		// Left container
 		AnchorPane sideBar = new AnchorPane();
 		sideBar.getChildren().addAll(options, onlineView, startChat);
+		//sideBar.getChildren().addAll(options, onlineView, startChat);
 		
 		// ---- Right (technically "Center") portion of main window ---- //
 		
@@ -142,10 +153,11 @@ public class ChatClient extends Application {
 		clientConsole.setEditable(false);
 		clientConsole.setWrapText(true);
 		// Container for the console which allows scrolling
+		// TODO: Scroll bar for console not working properly - fix
 		ScrollPane consolePane = new ScrollPane(clientConsole);	
 		// Formatting the console area
 		consolePane.setHbarPolicy(ScrollBarPolicy.NEVER);
-		consolePane.setVbarPolicy(ScrollBarPolicy.AS_NEEDED);
+		consolePane.setVbarPolicy(ScrollBarPolicy.NEVER);
 		clientConsole.prefWidthProperty().bind(consolePane.widthProperty());
 		clientConsole.setPrefHeight(433);
 		
@@ -218,7 +230,7 @@ public class ChatClient extends Application {
 
 		@Override
 		public void handle(ActionEvent event) {
-			clientConsole.appendText("Outputting chat history... " + "\n");
+			clientConsole.appendText("\n" + "Outputting chat history... " + "\n");
 			writer.println("hist:"+name);
 			writer.flush();
 		}
@@ -246,7 +258,7 @@ public class ChatClient extends Application {
 			sendRequest.setLayoutY(125);
 			sendRequest.setOnAction((ActionEvent e) -> {
 				
-				// TODO: Output some text if selected name is already in friendList
+				// DONE: Output some text if selected name is already in friendList
 				String selected = available.getSelectionModel().getSelectedItem();
 				ObservableList<String> friends = friendList.getItems();
 				if (!(friends.contains(selected))) {
@@ -257,8 +269,7 @@ public class ChatClient extends Application {
 					requestWindow.close();
 				}
 				else {
-					// TODO: Replace with output to client console
-					System.out.println(selected + " is already on your friend list");
+					clientConsole.appendText("\n" + selected + " is already on your friend list." + "\n");
 				}
 					
 			});
@@ -286,7 +297,7 @@ public class ChatClient extends Application {
 
 		@Override
 		public void handle(ActionEvent event) {
-			Button reply = (Button) event.getSource();	// TODO: Check getSource()
+			Button reply = (Button) event.getSource();	// DONE: getSource() works
 			String replyText = reply.getText();
 			
 			if (replyText.equals("Accept")) {
@@ -318,6 +329,15 @@ public class ChatClient extends Application {
 			
 			if (selected.size() == 0) {
 				return;
+			}
+			
+			ObservableList<String> friends = friendList.getItems();
+			for (String person : selected) {
+				if (!friends.contains(person)) {
+					onlineList.getSelectionModel().clearSelection();
+					clientConsole.appendText("\n" + person + " is not on your friend list." + "\n");
+					return;
+				}
 			}
 			
 			/* We don't need to check if the selected names are online 
@@ -379,7 +399,7 @@ public class ChatClient extends Application {
 			chatWindow.setHeight(400);
 			chatWindow.setScene(scene);
 			chatWindow.setTitle(name + " -- " + selectedNames);
-			// TODO: Define what happens when chat window closes
+			// DONE: Closing the chat window is effecitvely "hiding it"
 			
 		}
 		
@@ -403,7 +423,6 @@ public class ChatClient extends Application {
 		 */
 		public void handle(ActionEvent event) {
 			
-			// TODO: Store this for chat history
 			String message = messageArea.getText();
 			String outgoingMessage = "from:" + name + "\t" + "to:" + selectedNames 
 									 + "\t" + message;
@@ -429,9 +448,7 @@ public class ChatClient extends Application {
 		public void run() {
 			String message;	  // The input from the server
 			try {
-			
-				// TODO: Determine whether this condition is effectively endless
-				
+
 				while ((message = reader.readLine()) != null) {
 					
 					/* Because the start of any message is metadata that we sent from the
@@ -440,6 +457,9 @@ public class ChatClient extends Application {
 					 */
 					String firstLetter = Character.toString(message.charAt(0));
 					String messageTag = message.substring(0, 4);
+					
+					System.out.println(message + " -- ChatClient/IncomingReader");	// TODO: Comment this when not testing
+					System.out.println(messageTag + " -- ChatClient/IncomingReader");	// TODO: Comment this when not testing
 					
 					// Using tag "new:" for onlineList updates
 					if (firstLetter.equals("n")) {	
@@ -498,7 +518,8 @@ public class ChatClient extends Application {
 					else if (firstLetter.equals("h")) {
 						String histItem = message.substring(5, message.length());
 						Platform.runLater(() -> {
-							clientConsole.appendText(histItem + "\n");
+							// Pass in a date to format it
+							clientConsole.appendText("\n" + histItem + "\n");
 						});
 					}
 					
@@ -509,7 +530,7 @@ public class ChatClient extends Application {
 					
 					// Receiving response to sent friend request
 					else if (messageTag.equals("rep:")) {
-						
+						receiveReply(message);
 					}
 					
 				}
@@ -613,6 +634,46 @@ public class ChatClient extends Application {
 				replyWindow.setTitle(name + " -- Reply to Request");
 				replyWindow.show();
 			});
+		}
+		
+		
+		@SuppressWarnings("unused")
+		// Message form: "rep:recipient [tab] to:sender [tab] [reply]"
+		private void receiveReply(String message) {
+			
+			String cutMessage;
+			int replyEnd = message.indexOf('\t');
+			
+			// replyString = "rep:recipient"
+			String replyString = message.substring(0, replyEnd);
+			int colonIndex = replyString.indexOf(':');
+			String replier = replyString.substring(colonIndex + 1, replyString.length());
+			
+			// cutMessage = "to:sender [tab] [reply]"
+			cutMessage = message.substring(replyEnd + 1, message.length());
+			
+			int senderEnd = cutMessage.indexOf('\t');
+			// senderString = "to:sender"
+			String senderString = cutMessage.substring(0, senderEnd);
+			colonIndex = senderString.indexOf(':');
+			String originalSender = senderString.substring(colonIndex + 1, senderString.length());
+			
+			// reply = [reply]
+			String reply = cutMessage.substring(senderEnd + 1, cutMessage.length());
+			
+			if (reply.equals("Y")) {
+				Platform.runLater(() -> {
+					friendList.getItems().add(replier);
+					clientConsole.appendText("\n" + replier + " has accepted your request." + "\n");
+				});
+			}
+			else {
+				Platform.runLater(() -> {
+					clientConsole.appendText("\n" + replier + " has declined your request." + "\n");
+				});
+			}
+			
+			return;
 		}
 		
 	}
