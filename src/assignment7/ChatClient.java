@@ -11,13 +11,13 @@
 
 package assignment7;
 
-import java.awt.Insets;
 import java.io.*; 
 import java.net.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Scanner;
 
 import javafx.application.Application;
@@ -28,6 +28,7 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.stage.Stage;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.ScrollPane.ScrollBarPolicy;
@@ -45,13 +46,18 @@ public class ChatClient extends Application {
 	// TODO: Catch exceptions associated with clicking names in onlineList
 	private String passwd;
 	private ListView<String> onlineList;	
+	private ListView<String> friendList;
 	private TextArea clientConsole;
 	// TODO: Replace with thread-safe version or only access from GUI thread
 	private HashMap<String, Stage> currentChats;	
+	private Stage MasterStage;
 	
 	@Override 
 	public void start(Stage primaryStage) {
+		onlineList = new ListView<String>();
+		friendList = new ListView<String>();
 		currentChats = new HashMap<String, Stage>();
+		MasterStage = primaryStage;
 		loginView(primaryStage);
 		
 	}
@@ -119,17 +125,22 @@ public class ChatClient extends Application {
         login.setOnAction(new EventHandler<ActionEvent>(){
         	@Override
         	public void handle(ActionEvent e){
+        		boolean init = true;
         		name = loginText.getText().toString();
         		passwd = passwdText.getText().toString();
         		port = Integer.parseInt(portText.getText().toString());
         		host = hostText.getText().toString();
+        		System.out.println("Got login info -- ChatClient/loginView");	// TODO: Comment before submission
         		try {
-        			setUpNetworking();
+        			init = setUpNetworking();
         		} catch (Exception exc) {
         			exc.printStackTrace();
         		}
-        		initView(primaryStage);
-
+        		System.out.println("Returned from setUpNetworking -- ChatClient/loginView");	// TODO: Comment before submission
+        		System.out.println("About to call initView() -- ChatClient/loginView");	// TODO: Comment before submission
+        		if(init==true){
+        			initView(primaryStage);
+        		}
         	}
         });
         
@@ -151,6 +162,41 @@ public class ChatClient extends Application {
 		
 	}
 	
+	private void loginFailMessage(){
+		Stage messageStage = new Stage();
+		GridPane grid = new GridPane();
+        grid.setAlignment(Pos.CENTER);
+        grid.setHgap(10);
+        grid.setVgap(10);
+        Button close = new Button("Close");
+        close.setFont(Font.font("System", 16));
+        
+        Label message = new Label("Existing User, Invalid Password");
+        grid.add(message, 2, 2);
+       
+        HBox hbBtnClose = new HBox(10);
+        hbBtnClose.setAlignment(Pos.BOTTOM_CENTER);
+        hbBtnClose.getChildren().add(close);
+        grid.add(hbBtnClose, 2, 4);
+        
+        close.setOnAction(new EventHandler<ActionEvent>() {
+
+            @Override
+            public void handle(ActionEvent e) {
+                messageStage.close();
+                loginView(MasterStage);
+            }
+        });
+        
+        // Create a scene and place it in the stage
+     	Scene scene = new Scene(grid, 450, 400);
+     	messageStage.setResizable(false);
+     	messageStage.setScene(scene); // Place scene in stage
+     	messageStage.show();
+        
+        
+	}
+	
 	
 	
 	private void initView(Stage primaryStage) {
@@ -165,9 +211,12 @@ public class ChatClient extends Application {
 		MenuButton options = new MenuButton("Options");
 		MenuItem history = new MenuItem("Chat History  ");
 		history.setOnAction(new ChatHistoryHandler());
+		MenuItem logout = new MenuItem("Logout");
+		logout.setOnAction(new logoutHandler());
 		MenuItem requests = new MenuItem("Friend Request  ");
 		MenuItem pass = new MenuItem("Change Password  ");
-		options.getItems().addAll(history, requests, pass);	// Add all options to the menu
+		pass.setOnAction(new changePasswdHandler());
+		options.getItems().addAll(history, requests, pass, logout);	// Add all options to the menu
 		// Set the formatting of the drop down menu
 		options.setLayoutX(30);
 		options.setLayoutY(10);
@@ -181,7 +230,6 @@ public class ChatClient extends Application {
 		 * 
 		 * TODO: Add a second tab for friends
 		 */
-		onlineList = new ListView<String>();
 		// Allow multiple selections in ListView
 		onlineList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);	
 		ScrollPane onlineView = new ScrollPane(onlineList);	// Wrap ListView inside a ScrollPane
@@ -262,25 +310,23 @@ public class ChatClient extends Application {
 		
 		primaryStage.setTitle("Client Console - " + name); // Stage title
 		primaryStage.show(); // Display stage
+		MasterStage = primaryStage;
 		// TODO: Specify what happens when console Stage closes
 		
-		Thread readerThread = new Thread(new IncomingReader());
-		readerThread.start();
 		
 	} 
 	
-	private void setUpNetworking() throws Exception {	
+	private boolean setUpNetworking() throws Exception {	
 		
 		// DONE: Create host and port private variables which are set by user
 		
-		/* BufferedReader and PrintWriter are better than DataInputStream and  
-		 * DataOutputStream for String processing
-		 */
-		@SuppressWarnings("resource") 
 		// Create a new client socket
 		Socket sock = new Socket(host, port);	
 		// Get the client socket's input stream
 		InputStreamReader streamReader = new InputStreamReader(sock.getInputStream());
+		
+		System.out.println("After setting up socket -- ChatClient/setUpNetworking");	// TODO: Comment before submission
+		boolean loginFail = false;
 		// Set the input and output stream private variables
 		reader = new BufferedReader(streamReader); 
 		writer = new PrintWriter(sock.getOutputStream());
@@ -290,13 +336,61 @@ public class ChatClient extends Application {
 		 * If it were left out, the server would hang indefinitely.
 		 */
 		writer.flush();		
+		writer.println(passwd);
+		writer.flush();
+	
+		String next;
 		
+		System.out.println("before while loop -- ChatClient/setUpNetworking");	// TODO: Comment before submission
+		
+		while(!((next = reader.readLine()).equals("Done"))||!(next.equals("Failed"))){
+			friendList.getItems().add(next);
+			System.out.println("next value: " + next + " -- ChatClient/setUpNetworking");	// TODO: Comment before submission
+			if(next.equals("Done")){
+				break;
+			}
+			if(next.equals("Failed")){
+				break;
+			}
+		}
+		
+		if(next.equals("Failed")){
+			System.out.println("CAUGHT FAILED");
+			try{
+				reader.close();
+				writer.close();
+				sock.close();
+			}catch(IOException e){
+				
+			}
+			loginFailMessage();
+			loginFail = true;
+			return false;
+		}
+		
+		System.out.println("friendList updated -- ChatClient/setUpNetworking");	// TODO: Comment before submission
+		
+		while(!((next = reader.readLine()).equals("Done"))){
+			if(!onlineList.getItems().contains(next) && !next.equals(name)) {
+				onlineList.getItems().add(next);
+			}
+			
+			System.out.println("next value: " + next + " -- ChatClient/setUpNetworking");	// TODO: Comment before submission
+			if(next.equals("Done")){
+				break;
+			}	
+		}
+				
 		/* Create and start the "processing" thread. This thread will listen for
 		 * incoming information from the server. This frees up the GUI (application)
 		 * thread to update client windows and the like. If we tried to do everything
 		 * in one thread, the application would likely freeze up for several seconds
 		 * at a time after every action.
 		 */
+		
+		Thread readerThread = new Thread(new IncomingReader());
+		readerThread.start();
+		return true;
 		
 	}
 	
@@ -314,6 +408,20 @@ public class ChatClient extends Application {
 		}
 		
 		
+	}
+	
+	class logoutHandler implements EventHandler<ActionEvent>{
+		@Override
+		public void handle(ActionEvent event){
+			//TODO:
+		}
+	}
+	
+	class changePasswdHandler implements EventHandler<ActionEvent>{
+		@Override
+		public void handle(ActionEvent event){
+			
+		}
 	}
 	
 	class ChatButtonHandler implements EventHandler<ActionEvent> {

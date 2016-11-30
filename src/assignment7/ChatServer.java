@@ -27,12 +27,18 @@ public class ChatServer extends Observable {
 	// A list of the users currently "online"
 	private ArrayList<String> activeUsers;	
 	private ConcurrentHashMap<String, ArrayList<String>> chatHistory;
+	private ConcurrentHashMap<String, ArrayList<String>> friendList;
+	private ConcurrentHashMap<String, String> userAndPasswd;
 	private int port = 4343;	// TODO: Decide whether to have user defined port
-	private BufferedReader nameReader;	// An input stream reader to determine a client's name
+	private BufferedReader loginReader;	// An input stream reader to determine a client's name
 
 	public void setUpNetworking() throws Exception {
+		boolean userExists = false;
+		boolean userMatchesPasswd =false;
 		activeUsers = new ArrayList<String>();
 		chatHistory = new ConcurrentHashMap<String, ArrayList<String>>();	// TODO: Double check this initialization
+		userAndPasswd = new ConcurrentHashMap<String, String>();
+		friendList = new ConcurrentHashMap<String,ArrayList<String>>();
 		@SuppressWarnings("resource")
 		ServerSocket serverSock = new ServerSocket(port);	// Set up the server socket
 		// Serve clients indefinitely
@@ -44,9 +50,25 @@ public class ChatServer extends Observable {
 				 */
 				Socket clientSocket = serverSock.accept();
 				// Used to read a client's name
-				nameReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream())); 
+				loginReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream())); 
+				
 				// readLine() will wait until there's something in the input stream (i.e. it "blocks")
-				String name = nameReader.readLine();	
+				String name = loginReader.readLine();
+				String pass = loginReader.readLine();
+				
+				//TODO:implement check of name
+				if(userAndPasswd.containsKey(name)){
+					userExists = true;
+					if(userAndPasswd.get(name).equals(pass)){
+						activeUsers.add(name);
+						userMatchesPasswd =true;
+					}else{
+						userMatchesPasswd = false;
+					}
+				}else{
+					userExists =false;
+				}
+				
 				// Print to console on successful connection
 				System.out.println("Connection good for: " + name);	// TODO: Delete?
 				
@@ -54,12 +76,16 @@ public class ChatServer extends Observable {
 				ClientObserver writer = new ClientObserver(clientSocket.getOutputStream(), name);
 				// TODO: Determine if order of this call matters
 				this.addObserver(writer); 
-				updateUsers(name);	// Update online user lists of all clients
-				
+				if(userExists==false){
+					activeUsers.add(name);
+					
+					//updateUsers(name);	// Update online user lists of all clients
+					addUsers(name, pass);
+				}
 				/* This creates a new thread which constantly listens for input
 				 * from the client connection which was just established.
 				 */
-				Thread t = new Thread(new ClientHandler(clientSocket));
+				Thread t = new Thread(new ClientHandler(clientSocket, userExists, userMatchesPasswd, name));
 				t.start();
 				
 		}
@@ -70,12 +96,17 @@ public class ChatServer extends Observable {
 	
 	
 	private void updateUsers(String name) {
-		activeUsers.add(name);
+		// activeUsers.add(name);
 		for (String userName : activeUsers) {
 			String friendUpdate = "new:" + userName;
 			setChanged();
 			notifyObservers(friendUpdate);
 		}
+	}
+	
+	private void addUsers(String name, String pass){
+		userAndPasswd.put(name, pass);
+		//TODO: does anything else need to be done to this HashMap ?
 	}
 	
 	
@@ -99,15 +130,75 @@ public class ChatServer extends Observable {
 		
 		private BufferedReader reader;
 		private PrintWriter historyWriter;
+		private boolean userExists;
+		private boolean userMatchesPasswd;
+		private String name;
+		private Socket sock;
 		
-		public ClientHandler(Socket clientSocket) throws IOException {
-			Socket sock = clientSocket;
+		public ClientHandler(Socket clientSocket, boolean uE, boolean uMP, String n) throws IOException {
+			sock = clientSocket;
 			reader = new BufferedReader(new InputStreamReader(sock.getInputStream()));
 			historyWriter = new PrintWriter(sock.getOutputStream());
+			userExists = uE;
+			userMatchesPasswd = uMP;
+			this.name=n;
 		}
 		
 		public void run() {
+			if(userExists==false){
+			
+				historyWriter.println("Done");
+				historyWriter.flush();
+				for(String s: activeUsers){
+					historyWriter.println(s);
+					historyWriter.flush();
+				}
+				historyWriter.println("Done");
+				historyWriter.flush();
+				updateUsers(name);
+				
+			}else if(userExists==true && userMatchesPasswd==true){
+				ArrayList<String> friends = friendList.get(name);
+				
+				if (friends != null) {
+					for(String s: friends){
+						historyWriter.println(s);
+						historyWriter.flush();
+					}
+				}
+				historyWriter.println("Done");
+				historyWriter.flush();
+				
+				for(String s: activeUsers){
+					historyWriter.println(s);
+					historyWriter.flush();
+				}
+				historyWriter.println("Done");
+				historyWriter.flush();
+				updateUsers(name);
+				
+			}else if(userExists==true && userMatchesPasswd==false){
+				
+				historyWriter.println("Failed");
+				historyWriter.flush();
+				try {
+					historyWriter.close();
+					reader.close();
+					sock.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				//would not allow me to place a continue outside of a loop
+				//continue;
+				
+				
+			}
+			
+			
+			
 			String message;		// The input from the client
+			
 			try{
 				while((message = reader.readLine()) != null){
 					
