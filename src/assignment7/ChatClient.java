@@ -13,13 +13,10 @@ package assignment7;
 
 import java.io.*;
 import java.net.*;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.Scanner;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -29,6 +26,7 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.ScrollPane.ScrollBarPolicy;
@@ -43,27 +41,161 @@ public class ChatClient extends Application {
 	private PrintWriter writer;
 	private String name;	// TODO: Don't allow there to exist duplicate usernames
 	// TODO: Catch exceptions associated with clicking names in onlineList
+
+	private String passwd;
 	private ListView<String> onlineList;
 	private ListView<String> friendList;
 	private TextArea clientConsole;
 	// TODO: Replace with thread-safe version or only access from GUI thread
 	private HashMap<String, Stage> currentChats;
+	private Stage MasterStage;
+
+	private Socket sock;
 
 	@Override
 	public void start(Stage primaryStage) {
-		currentChats = new HashMap<String, Stage>();
+		onlineList = new ListView<String>();
 		friendList = new ListView<String>();
-		initView(primaryStage);
-		try {
-			setUpNetworking();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		currentChats = new HashMap<String, Stage>();
+
+		MasterStage = primaryStage;
+		MasterStage.setOnCloseRequest(new windowCloseHandler());
+		loginView(primaryStage);
+
 	}
 
 
 	// ---------------------------------------- PRIVATE METHODS ---------------------------------------- //
 
+	//function to handle login GUI
+	private void loginView(Stage primaryStage){
+		GridPane grid = new GridPane();
+        grid.setAlignment(Pos.CENTER);
+        grid.setHgap(10);
+        grid.setVgap(10);
+        //grid.setPadding(new Insets(25, 25, 25, 25));
+
+		Button close = new Button("Close");
+
+		close.setFont(Font.font("System", 16));
+		//close.setOnAction(new CloseLoginHandler());
+
+		Button login = new Button("Login/Create Account");
+
+		login.setFont(Font.font("System", 16));
+		//login.setOnAction(new LoginHandler());
+
+		Label loginLabel = new Label("Login:");
+		Label passwdLabel = new Label("Password:");
+		Label portLabel = new Label("Port:");
+		Label hostLabel = new Label("Host:");
+
+		TextField loginText = new TextField();
+		TextField passwdText = new PasswordField();
+		TextField portText = new TextField();
+		TextField hostText = new TextField();
+
+
+		// using grid and hbox
+		grid.add(loginLabel, 0, 1);
+		grid.add(loginText, 1, 1);
+		grid.add(passwdLabel, 0, 2);
+		grid.add(passwdText, 1, 2);
+		grid.add(portLabel, 0, 3);
+		grid.add(portText, 1, 3);
+		grid.add(hostLabel, 0, 4);
+		grid.add(hostText, 1, 4);
+
+		HBox hbBtnLogin = new HBox(10);
+        hbBtnLogin.setAlignment(Pos.BOTTOM_RIGHT);
+        hbBtnLogin.getChildren().add(login);
+        grid.add(hbBtnLogin, 1, 5);
+
+        HBox hbBtnClose = new HBox(10);
+        hbBtnClose.setAlignment(Pos.BOTTOM_LEFT);
+        hbBtnClose.getChildren().add(close);
+        grid.add(hbBtnClose, 0, 5);
+
+        close.setOnAction(new EventHandler<ActionEvent>() {
+
+            @Override
+            public void handle(ActionEvent e) {
+                System.exit(0);
+            }
+        });
+
+        login.setOnAction(new EventHandler<ActionEvent>(){
+        	@Override
+        	public void handle(ActionEvent e){
+        		boolean init = true;
+        		name = loginText.getText().toString();
+        		passwd = passwdText.getText().toString();
+        		port = Integer.parseInt(portText.getText().toString());
+        		host = hostText.getText().toString();
+        		System.out.println("Got login info -- ChatClient/loginView");	// TODO: Comment before submission
+        		try {
+        			init = setUpNetworking();
+        		} catch (Exception exc) {
+        			exc.printStackTrace();
+        		}
+        		System.out.println("Returned from setUpNetworking -- ChatClient/loginView");	// TODO: Comment before submission
+        		System.out.println("About to call initView() -- ChatClient/loginView");	// TODO: Comment before submission
+        		if(init==true){
+        			initView(primaryStage);
+        		}
+        	}
+        });
+
+
+		// Create a scene and place it in the stage
+		Scene scene = new Scene(grid, 450, 400);
+		//primaryStage.setWidth(500);
+		//primaryStage.setHeight(455);
+		/* There are a lot of intricate components to this window,
+		 * so allowing resizing might inhibit the intended view. As such,
+		 * we only allow one fixed size.
+		 */
+		primaryStage.setTitle("Login");
+		primaryStage.setResizable(false);
+		primaryStage.setScene(scene); // Place scene in stage
+
+		primaryStage.show();
+	}
+
+	private void loginFailMessage(){
+		Stage messageStage = new Stage();
+		GridPane grid = new GridPane();
+        grid.setAlignment(Pos.CENTER);
+        grid.setHgap(10);
+        grid.setVgap(10);
+        Button close = new Button("Close");
+        close.setFont(Font.font("System", 16));
+
+        Label message = new Label("Existing User, Invalid Password");
+        grid.add(message, 2, 2);
+
+        HBox hbBtnClose = new HBox(10);
+        hbBtnClose.setAlignment(Pos.BOTTOM_CENTER);
+        hbBtnClose.getChildren().add(close);
+        grid.add(hbBtnClose, 2, 4);
+
+        close.setOnAction(new EventHandler<ActionEvent>() {
+
+            @Override
+            public void handle(ActionEvent e) {
+                messageStage.close();
+                loginView(MasterStage);
+            }
+        });
+
+        // Create a scene and place it in the stage
+     	Scene scene = new Scene(grid, 450, 400);
+     	messageStage.setResizable(false);
+     	messageStage.setScene(scene); // Place scene in stage
+     	messageStage.show();
+
+
+	}
 
 	private void initView(Stage primaryStage) {
 
@@ -74,9 +206,12 @@ public class ChatClient extends Application {
 		 * We can call setOnAction for each MenuItem when we implement
 		 * these features.
 		 */
+
 		MenuButton options = new MenuButton("Options");
 		MenuItem history = new MenuItem("Chat History  ");
 		history.setOnAction(new ChatHistoryHandler());
+		MenuItem logout = new MenuItem("Logout");
+		logout.setOnAction(new logoutHandler());
 		MenuItem requests = new MenuItem("Friend Request  ");
 		requests.setOnAction(new FriendRequestHandler());
 
@@ -89,7 +224,8 @@ public class ChatClient extends Application {
 		});
 
 		MenuItem pass = new MenuItem("Change Password  ");
-		options.getItems().addAll(history, requests, pass, showFriends);	// Add all options to the menu
+		pass.setOnAction(new changePasswdHandler());
+		options.getItems().addAll(history, requests, showFriends, pass, logout);	// Add all options to the menu
 		// Set the formatting of the drop down menu
 		options.setLayoutX(30);
 		options.setLayoutY(10);
@@ -103,7 +239,6 @@ public class ChatClient extends Application {
 		 *
 		 * TODO: Add a second tab for friends
 		 */
-		onlineList = new ListView<String>();
 		// Allow multiple selections in ListView
 		onlineList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 		ScrollPane onlineView = new ScrollPane(onlineList);	// Wrap ListView inside a ScrollPane
@@ -178,31 +313,35 @@ public class ChatClient extends Application {
 		primaryStage.setScene(scene); // Place scene in stage
 
 		// DONE: Temporarily set name here; delete code when login screen is implemented
-		// Note: we're asking the client for their name before we open a connection
-		Scanner in = new Scanner(System.in);
-		System.out.print("Enter a name: ");
-		name = in.nextLine();
-		in.close();
-		System.out.println("Name is: " + name);
+		//Scanner in = new Scanner(System.in);
+		//System.out.print("Enter a name: ");
+		//name = in.nextLine();
+		//in.close();
+		//System.out.println("Name is: " + name);
 
 		primaryStage.setTitle("Client Console - " + name); // Stage title
 		primaryStage.show(); // Display stage
+		MasterStage = primaryStage;
 		// TODO: Specify what happens when console Stage closes
-
 	}
 
-	private void setUpNetworking() throws Exception {
+	private boolean setUpNetworking() throws Exception {
 
 		// DONE: Create host and port private variables which are set by user
 
 		/* BufferedReader and PrintWriter are better than DataInputStream and
 		 * DataOutputStream for String processing
 		 */
-		@SuppressWarnings("resource")
+		
 		// Create a new client socket
-		Socket sock = new Socket(host, port);
+		sock = new Socket(host, port);
+
 		// Get the client socket's input stream
 		InputStreamReader streamReader = new InputStreamReader(sock.getInputStream());
+
+		System.out.println("After setting up socket -- ChatClient/setUpNetworking");	// TODO: Comment before submission
+		@SuppressWarnings("unused")
+		boolean loginFail = false;
 		// Set the input and output stream private variables
 		reader = new BufferedReader(streamReader);
 		writer = new PrintWriter(sock.getOutputStream());
@@ -212,6 +351,50 @@ public class ChatClient extends Application {
 		 * If it were left out, the server would hang indefinitely.
 		 */
 		writer.flush();
+		writer.println(passwd);
+		writer.flush();
+
+		String next;
+
+		System.out.println("before while loop -- ChatClient/setUpNetworking");	// TODO: Comment before submission
+
+		while(!((next = reader.readLine()).equals("Done"))||!(next.equals("Failed"))){
+			friendList.getItems().add(next);
+			System.out.println("next value: " + next + " -- ChatClient/setUpNetworking");	// TODO: Comment before submission
+			if(next.equals("Done")){
+				break;
+			}
+			if(next.equals("Failed")){
+				break;
+			}
+		}
+
+		if(next.equals("Failed")){
+			System.out.println("CAUGHT FAILED");
+			try{
+				reader.close();
+				writer.close();
+				sock.close();
+			}catch(IOException e){
+
+			}
+			loginFailMessage();
+			loginFail = true;
+			return false;
+		}
+
+		System.out.println("friendList updated -- ChatClient/setUpNetworking");	// TODO: Comment before submission
+
+		while(!((next = reader.readLine()).equals("Done"))){
+			if(!onlineList.getItems().contains(next) && !next.equals(name)) {
+				onlineList.getItems().add(next);
+			}
+
+			System.out.println("next value: " + next + " -- ChatClient/setUpNetworking");	// TODO: Comment before submission
+			if(next.equals("Done")){
+				break;
+			}
+		}
 
 		/* Create and start the "processing" thread. This thread will listen for
 		 * incoming information from the server. This frees up the GUI (application)
@@ -219,8 +402,11 @@ public class ChatClient extends Application {
 		 * in one thread, the application would likely freeze up for several seconds
 		 * at a time after every action.
 		 */
+
 		Thread readerThread = new Thread(new IncomingReader());
 		readerThread.start();
+		return true;
+
 	}
 
 
@@ -315,6 +501,110 @@ public class ChatClient extends Application {
 			stage.close();
 		}
 
+	}
+
+	class logoutHandler implements EventHandler<ActionEvent>{
+		@Override
+		public void handle(ActionEvent event){
+
+			for(String key:currentChats.keySet()){
+				currentChats.get(key).close();
+			}
+
+			writer.println("del:"+name);
+			writer.flush();
+			writer.close();
+			System.out.println("WRITER CLOSED");
+
+			try {
+				reader.close();
+				sock.close();
+				System.out.println("READER/SOCK CLOSED");
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				//e.printStackTrace();
+			}
+			MasterStage.close();
+			System.exit(0);
+
+		}
+	}
+	class windowCloseHandler implements EventHandler<WindowEvent>{
+
+		@Override
+		public void handle(WindowEvent arg0) {
+			//close current chats
+			for(String key:currentChats.keySet()){
+				currentChats.get(key).close();
+			}
+
+			writer.println("del:"+name);
+			writer.flush();
+			writer.close();
+			System.out.println("WRITER CLOSED");
+
+			try {
+				reader.close();
+				sock.close();
+				System.out.println("READER/SOCK CLOSED");
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				//e.printStackTrace();
+			}
+			
+			MasterStage.close();
+			System.exit(0);
+		}
+
+	}
+
+	class changePasswdHandler implements EventHandler<ActionEvent>{
+		@Override
+		public void handle(ActionEvent event){
+			GridPane grid = new GridPane();
+	        grid.setAlignment(Pos.CENTER);
+	        grid.setHgap(10);
+	        grid.setVgap(10);
+
+
+			Button passwdButton = new Button("Change Password");
+
+			passwdButton.setFont(Font.font("System", 16));
+
+
+			Label passwdLabel = new Label("New Password:");
+
+			TextField passwdText = new PasswordField();
+
+
+			// using grid and hbox
+
+			grid.add(passwdLabel, 0, 2);
+			grid.add(passwdText, 1, 2);
+
+			HBox hbBtnCPasswd = new HBox(10);
+	        hbBtnCPasswd.setAlignment(Pos.BOTTOM_CENTER);
+	        hbBtnCPasswd.getChildren().add(passwdButton);
+	        grid.add(hbBtnCPasswd, 1, 5);
+
+	        //button clicked
+	        passwdButton.setOnAction(new EventHandler<ActionEvent>() {
+
+	            @Override
+	            public void handle(ActionEvent e) {
+	                passwd = passwdText.getText().toString();
+	                writer.println("cp:"+name+"\t"+passwd);
+	                writer.flush();
+
+	                initView(MasterStage);
+	            }
+	        });
+	        Scene scene = new Scene(grid, 450, 400);
+	     	MasterStage.setResizable(false);
+	     	MasterStage.setScene(scene); // Place scene in stage
+	     	MasterStage.show();
+
+		}
 	}
 
 	class ChatButtonHandler implements EventHandler<ActionEvent> {
@@ -531,6 +821,18 @@ public class ChatClient extends Application {
 					// Receiving response to sent friend request
 					else if (messageTag.equals("rep:")) {
 						receiveReply(message);
+					}
+
+					else if(firstLetter.equals("d")){
+						String userName = message.substring(4,message.length());
+						System.out.println("CAUGHT DELETE SENT BY SERVER");
+						System.out.println("user ="+userName);
+
+
+						Platform.runLater(() -> {
+							onlineList.getItems().remove(userName);
+						});
+
 					}
 
 				}

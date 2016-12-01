@@ -45,18 +45,33 @@ public class ClientObserver extends PrintWriter implements Observer {
 			this.println((String) arg);
 			this.flush();
 		}
+
 		else if (messageTag.equals("req:")) {
 			findRecipient(arg);
 			send(arg);
 		}
+
 		else if (messageTag.equals("rep:")) {
 			findOriginalSender(arg);
 			send(arg);
+        }
+
+		else if(messageTag.equals("del:")){
+			stripUser(arg);
 		}
+
 		else {
 			findNames(arg);
 			send(arg);
 		}
+	}
+
+	private void stripUser(Object arg){
+		String message = (String)arg;
+		@SuppressWarnings("unused")
+		String user = message.substring(4, message.length());
+		this.println(message);
+		this.flush();
 	}
 
 	private void send(Object arg) {

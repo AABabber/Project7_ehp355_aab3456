@@ -27,9 +27,11 @@ public class ChatServer extends Observable {
 	// A list of the users currently "online"
 	private ArrayList<String> activeUsers;
 	private ConcurrentHashMap<String, ArrayList<String>> chatHistory;
-	private ConcurrentHashMap<String, ArrayList<String>> friendLists;
+	private ConcurrentHashMap<String, ArrayList<String>> friendList;
+	private ConcurrentHashMap<String, String> userAndPasswd;
+	private ConcurrentHashMap<String, ClientObserver> userCO;
 	private int port = 4343;	// TODO: Decide whether to have user defined port
-	private BufferedReader nameReader;	// An input stream reader to determine a client's name
+	private BufferedReader loginReader;	// An input stream reader to determine a client's name
 
 	/*
 	@SuppressWarnings("unused")
@@ -43,9 +45,14 @@ public class ChatServer extends Observable {
 
 	public void setUpNetworking() throws Exception {
 
+		boolean userExists = false;
+		boolean userMatchesPasswd =false;
 		activeUsers = new ArrayList<String>();
 		chatHistory = new ConcurrentHashMap<String, ArrayList<String>>();	// TODO: Double check this initialization
-		friendLists = new ConcurrentHashMap<String, ArrayList<String>>();
+		userAndPasswd = new ConcurrentHashMap<String, String>();
+		friendList = new ConcurrentHashMap<String,ArrayList<String>>();
+		userCO = new ConcurrentHashMap<String,ClientObserver>();
+
 		@SuppressWarnings("resource")
 		ServerSocket serverSock = new ServerSocket(port);	// Set up the server socket
 
@@ -57,23 +64,44 @@ public class ChatServer extends Observable {
 				 * it executes the code which follows.
 				 */
 				Socket clientSocket = serverSock.accept();
-				// Used to read a client's name
-				nameReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+
+				loginReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+
 				// readLine() will wait until there's something in the input stream (i.e. it "blocks")
-				String name = nameReader.readLine();
+				String name = loginReader.readLine();
+				String pass = loginReader.readLine();
+
+				//TODO:implement check of name
+				if(userAndPasswd.containsKey(name)){
+					userExists = true;
+					if(userAndPasswd.get(name).equals(pass)){
+						activeUsers.add(name);
+						userMatchesPasswd =true;
+					}else{
+						userMatchesPasswd = false;
+					}
+				}else{
+					userExists =false;
+				}
+
 				// Print to console on successful connection
 				System.out.println("Connection good for: " + name);	// TODO: Delete?
 
 				// The output stream portion of a client socket is effectively the Observer
 				ClientObserver writer = new ClientObserver(clientSocket.getOutputStream(), name);
 				// TODO: Determine if order of this call matters
+
+				userCO.put(name, writer);
 				this.addObserver(writer);
-				updateUsers(name);	// Update online user lists of all clients
+				if(userExists==false){
+					activeUsers.add(name);
+					addUsers(name, pass);
+				}
 
 				/* This creates a new thread which constantly listens for input
 				 * from the client connection which was just established.
 				 */
-				Thread t = new Thread(new ClientHandler(clientSocket));
+				Thread t = new Thread(new ClientHandler(clientSocket, userExists, userMatchesPasswd, name));
 				t.start();
 
 		}
@@ -84,7 +112,6 @@ public class ChatServer extends Observable {
 
 
 	private void updateUsers(String name) {
-		activeUsers.add(name);
 		for (String userName : activeUsers) {
 			String friendUpdate = "new:" + userName;
 			setChanged();
@@ -92,6 +119,13 @@ public class ChatServer extends Observable {
 		}
 	}
 
+	private void delUser(String name){
+		deleteObserver(userCO.get(name));
+	}
+
+	private void addUsers(String name, String pass){
+		userAndPasswd.put(name, pass);
+	}
 
 	// ----------------------------------------- INNER CLASSES ----------------------------------------- //
 
@@ -113,16 +147,70 @@ public class ChatServer extends Observable {
 
 		private BufferedReader reader;
 		private PrintWriter historyWriter;
+		private boolean userExists;
+		private boolean userMatchesPasswd;
+		private String name;
+		private Socket sock;
 
-		public ClientHandler(Socket clientSocket) throws IOException {
-			Socket sock = clientSocket;
+		public ClientHandler(Socket clientSocket, boolean uE, boolean uMP, String n) throws IOException {
+			sock = clientSocket;
 			reader = new BufferedReader(new InputStreamReader(sock.getInputStream()));
 			historyWriter = new PrintWriter(sock.getOutputStream());
+			userExists = uE;
+			userMatchesPasswd = uMP;
+			this.name=n;
 		}
 
 		public void run() {
 
+			if(userExists==false){
+
+				historyWriter.println("Done");
+				historyWriter.flush();
+				for(String s: activeUsers){
+					historyWriter.println(s);
+					historyWriter.flush();
+				}
+				historyWriter.println("Done");
+				historyWriter.flush();
+				updateUsers(name);
+
+			}else if(userExists==true && userMatchesPasswd==true){
+				ArrayList<String> friends = friendList.get(name);
+
+				if (friends != null) {
+					for(String s: friends){
+						historyWriter.println(s);
+						historyWriter.flush();
+					}
+				}
+				historyWriter.println("Done");
+				historyWriter.flush();
+
+				for(String s: activeUsers){
+					historyWriter.println(s);
+					historyWriter.flush();
+				}
+				historyWriter.println("Done");
+				historyWriter.flush();
+				updateUsers(name);
+
+			}else if(userExists==true && userMatchesPasswd==false){
+
+				historyWriter.println("Failed");
+				historyWriter.flush();
+				try {
+					historyWriter.close();
+					reader.close();
+					sock.close();
+				} catch (IOException e) {
+
+				}
+
+			}
+
 			String message;		// The input from the client
+
 			try{
 				while((message = reader.readLine()) != null){
 
@@ -153,6 +241,26 @@ public class ChatServer extends Observable {
 							historyWriter.println("hist:" + s);
 							historyWriter.flush();
 						}
+
+					}else if(firstLetter.equals("c")){
+
+						//NEED to check if parsing string correctly
+						String userName = message.substring(3,message.indexOf("\t"));
+						String newPasswd = message.substring(message.indexOf("\t")+1,message.length());
+						System.out.println(newPasswd);
+						userAndPasswd.put(userName,newPasswd);
+
+					}else if(firstLetter.equals("d")){
+
+						String userName = message.substring(4,message.length());
+						//removes from list of Observers
+						delUser(userName);
+						activeUsers.remove(userName);
+						setChanged();
+						notifyObservers(message);
+						historyWriter.close();
+						reader.close();
+						sock.close();
 					}
 
 					// A client is sending a friend request
@@ -170,7 +278,7 @@ public class ChatServer extends Observable {
 
 				}
 			}catch(IOException e){
-				e.printStackTrace();
+
 			}
 			/* If the thread finishes because of a GUI closing, does
 			 * control come here?
@@ -256,8 +364,8 @@ public class ChatServer extends Observable {
 			String reply = cutMessage.substring(senderEnd + 1, cutMessage.length());
 
 			if (reply.equals("Y")) {
-				ArrayList<String> replierList = friendLists.get(replier);
-				ArrayList<String> senderList = friendLists.get(originalSender);
+				ArrayList<String> replierList = friendList.get(replier);
+				ArrayList<String> senderList = friendList.get(originalSender);
 				if (replierList == null) {
 					replierList = new ArrayList<String>();
 				}
