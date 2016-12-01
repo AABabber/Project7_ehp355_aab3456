@@ -7,10 +7,10 @@ import javafx.scene.control.TextArea;
 import javafx.stage.Stage;
 
 public class ServerGUI extends Application {
-	
+
 	public Stage theStage;
 	public TextArea serverText;
-	
+
 	@Override
 	public void start(Stage primaryStage) throws Exception {
 		theStage = primaryStage;
@@ -24,7 +24,7 @@ public class ServerGUI extends Application {
 		theStage.setResizable(false);
 		theStage.show(); // Display the stage
 	}
-	
+
 	public void updateText(String text) {
 		serverText.appendText(text + "\n");
 	}

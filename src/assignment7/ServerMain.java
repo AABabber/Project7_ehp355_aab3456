@@ -14,13 +14,13 @@ package assignment7;
 import javafx.application.Application;
 
 public class ServerMain {
-	
+
 	public static void main(String[] args){
-		
+
 		new Thread(() -> {
 			Application.launch(ServerGUI.class, args);
 		}).start();
-		
+
 		try{
 			ChatServer server = new ChatServer();
 			server.setUpNetworking();
@@ -30,4 +30,3 @@ public class ServerMain {
 	}
 
 }
-	
