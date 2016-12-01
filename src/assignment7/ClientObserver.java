@@ -5,7 +5,7 @@
  * Enrique Perez-Osborne
  * ehp355
  * 16465
- * Slip days used: <0>
+ * Slip days used: <1>
  * Fall 2016
  */
 

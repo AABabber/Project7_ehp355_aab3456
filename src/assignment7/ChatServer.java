@@ -5,7 +5,7 @@
  * Enrique Perez-Osborne
  * ehp355
  * 16465
- * Slip days used: <0>
+ * Slip days used: <1>
  * Fall 2016
  */
 
@@ -177,7 +177,7 @@ public class ChatServer extends Observable {
 
 			}else if(userExists==true && userMatchesPasswd==true){
 				ArrayList<String> friends = friendList.get(name);
-				
+
 				System.out.println(friends.toString() + " -- ClientHandler in server");
 
 				if (friends != null) {

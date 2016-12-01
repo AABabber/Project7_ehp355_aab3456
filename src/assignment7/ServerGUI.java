@@ -1,3 +1,14 @@
+/* EE422C Project 7
+ * Aaron Babber
+ * aab3456
+ * 16480
+ * Enrique Perez-Osborne
+ * ehp355
+ * 16465
+ * Slip days used: <1>
+ * Fall 2016
+ */
+
 package assignment7;
 
 import javafx.application.Application;

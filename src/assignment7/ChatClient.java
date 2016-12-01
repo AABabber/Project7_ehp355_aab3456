@@ -5,7 +5,7 @@
  * Enrique Perez-Osborne
  * ehp355
  * 16465
- * Slip days used: <0>
+ * Slip days used: <1>
  * Fall 2016
  */
 
@@ -333,7 +333,7 @@ public class ChatClient extends Application {
 		/* BufferedReader and PrintWriter are better than DataInputStream and
 		 * DataOutputStream for String processing
 		 */
-		
+
 		// Create a new client socket
 		sock = new Socket(host, port);
 
@@ -554,7 +554,7 @@ public class ChatClient extends Application {
 				// TODO Auto-generated catch block
 				//e.printStackTrace();
 			}
-			
+
 			MasterStage.close();
 			System.exit(0);
 		}
