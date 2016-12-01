@@ -218,6 +218,7 @@ public class ChatClient extends Application {
 		MenuItem showFriends = new MenuItem("Show Friends  ");
 		showFriends.setOnAction((ActionEvent e) -> {
 			clientConsole.appendText("\n" + "Showing friends: " + "\n");
+			System.out.println(friendList.getItems().toString());
 			for (String friend : friendList.getItems()) {
 				clientConsole.appendText("\n" + friend);
 			}
@@ -359,7 +360,9 @@ public class ChatClient extends Application {
 		System.out.println("before while loop -- ChatClient/setUpNetworking");	// TODO: Comment before submission
 
 		while(!((next = reader.readLine()).equals("Done"))||!(next.equals("Failed"))){
-			friendList.getItems().add(next);
+			if(!next.equals("Done")&&!next.equals("Failed")){
+				friendList.getItems().add(next);
+			}
 			System.out.println("next value: " + next + " -- ChatClient/setUpNetworking");	// TODO: Comment before submission
 			if(next.equals("Done")){
 				break;

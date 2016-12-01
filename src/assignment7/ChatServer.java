@@ -177,6 +177,8 @@ public class ChatServer extends Observable {
 
 			}else if(userExists==true && userMatchesPasswd==true){
 				ArrayList<String> friends = friendList.get(name);
+				
+				System.out.println(friends.toString() + " -- ClientHandler in server");
 
 				if (friends != null) {
 					for(String s: friends){
@@ -368,9 +370,11 @@ public class ChatServer extends Observable {
 				ArrayList<String> senderList = friendList.get(originalSender);
 				if (replierList == null) {
 					replierList = new ArrayList<String>();
+					friendList.put(replier, replierList);
 				}
 				if (senderList == null) {
 					senderList = new ArrayList<String>();
+					friendList.put(originalSender, senderList);
 				}
 				replierList.add(originalSender);
 				senderList.add(replier);
