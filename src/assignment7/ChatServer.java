@@ -29,6 +29,7 @@ public class ChatServer extends Observable {
 	private ConcurrentHashMap<String, ArrayList<String>> chatHistory;
 	private ConcurrentHashMap<String, ArrayList<String>> friendList;
 	private ConcurrentHashMap<String, String> userAndPasswd;
+	private ConcurrentHashMap<String, ClientObserver> userCO;
 	private int port = 4343;	// TODO: Decide whether to have user defined port
 	private BufferedReader loginReader;	// An input stream reader to determine a client's name
 
@@ -39,6 +40,7 @@ public class ChatServer extends Observable {
 		chatHistory = new ConcurrentHashMap<String, ArrayList<String>>();	// TODO: Double check this initialization
 		userAndPasswd = new ConcurrentHashMap<String, String>();
 		friendList = new ConcurrentHashMap<String,ArrayList<String>>();
+		userCO = new ConcurrentHashMap<String,ClientObserver>();
 		@SuppressWarnings("resource")
 		ServerSocket serverSock = new ServerSocket(port);	// Set up the server socket
 		// Serve clients indefinitely
@@ -75,11 +77,10 @@ public class ChatServer extends Observable {
 				// The output stream portion of a client socket is effectively the Observer
 				ClientObserver writer = new ClientObserver(clientSocket.getOutputStream(), name);
 				// TODO: Determine if order of this call matters
+				userCO.put(name, writer);
 				this.addObserver(writer); 
 				if(userExists==false){
 					activeUsers.add(name);
-					
-					//updateUsers(name);	// Update online user lists of all clients
 					addUsers(name, pass);
 				}
 				/* This creates a new thread which constantly listens for input
@@ -96,17 +97,18 @@ public class ChatServer extends Observable {
 	
 	
 	private void updateUsers(String name) {
-		// activeUsers.add(name);
 		for (String userName : activeUsers) {
 			String friendUpdate = "new:" + userName;
 			setChanged();
 			notifyObservers(friendUpdate);
 		}
 	}
+	private void delUser(String name){
+		deleteObserver(userCO.get(name));
+	}
 	
 	private void addUsers(String name, String pass){
 		userAndPasswd.put(name, pass);
-		//TODO: does anything else need to be done to this HashMap ?
 	}
 	
 	
@@ -186,16 +188,10 @@ public class ChatServer extends Observable {
 					reader.close();
 					sock.close();
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				//would not allow me to place a continue outside of a loop
-				//continue;
 				
+				}
 				
 			}
-			
-			
 			
 			String message;		// The input from the client
 			
@@ -232,11 +228,23 @@ public class ChatServer extends Observable {
 						System.out.println(newPasswd);
 						userAndPasswd.put(userName,newPasswd);
 						
+					}else if(firstLetter.equals("d")){
+
+						String userName = message.substring(4,message.length());
+						//removes from list of Observers
+						delUser(userName);
+						activeUsers.remove(userName);
+						setChanged();
+						notifyObservers(message);
+						historyWriter.close();
+						reader.close();
+						sock.close();
+						
 					}
 					
 				}
 			}catch(IOException e){
-				e.printStackTrace();
+				
 			}
 			/* If the thread finishes because of a GUI closing, does 
 			 * control come here?

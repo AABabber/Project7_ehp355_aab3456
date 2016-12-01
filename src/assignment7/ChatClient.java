@@ -28,6 +28,7 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -52,12 +53,15 @@ public class ChatClient extends Application {
 	private HashMap<String, Stage> currentChats;	
 	private Stage MasterStage;
 	
+	private Socket sock;
+	
 	@Override 
 	public void start(Stage primaryStage) {
 		onlineList = new ListView<String>();
 		friendList = new ListView<String>();
 		currentChats = new HashMap<String, Stage>();
 		MasterStage = primaryStage;
+		MasterStage.setOnCloseRequest(new windowCloseHandler());
 		loginView(primaryStage);
 		
 	}
@@ -153,11 +157,11 @@ public class ChatClient extends Application {
 		 * so allowing resizing might inhibit the intended view. As such,
 		 * we only allow one fixed size.
 		 */
+		primaryStage.setTitle("Login");
 		primaryStage.setResizable(false);
 		primaryStage.setScene(scene); // Place scene in stage
 		
 		primaryStage.show();
-		
 		
 		
 	}
@@ -208,6 +212,7 @@ public class ChatClient extends Application {
 		 * We can call setOnAction for each MenuItem when we implement
 		 * these features.
 		 */
+		
 		MenuButton options = new MenuButton("Options");
 		MenuItem history = new MenuItem("Chat History  ");
 		history.setOnAction(new ChatHistoryHandler());
@@ -321,7 +326,7 @@ public class ChatClient extends Application {
 		// DONE: Create host and port private variables which are set by user
 		
 		// Create a new client socket
-		Socket sock = new Socket(host, port);	
+		sock = new Socket(host, port);	
 		// Get the client socket's input stream
 		InputStreamReader streamReader = new InputStreamReader(sock.getInputStream());
 		
@@ -413,8 +418,53 @@ public class ChatClient extends Application {
 	class logoutHandler implements EventHandler<ActionEvent>{
 		@Override
 		public void handle(ActionEvent event){
-			//TODO:
+			
+			for(String key:currentChats.keySet()){
+				currentChats.get(key).close();
+			}
+			
+			writer.println("del:"+name);
+			writer.flush();
+			writer.close();
+			System.out.println("WRITER CLOSED");
+			
+			try {
+				reader.close();
+				sock.close();
+				System.out.println("READER/SOCK CLOSED");
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				//e.printStackTrace();
+			}
+			System.exit(0);
+			
 		}
+	}
+	class windowCloseHandler implements EventHandler<WindowEvent>{
+
+		@Override
+		public void handle(WindowEvent arg0) {
+			//close current chats
+			for(String key:currentChats.keySet()){
+				currentChats.get(key).close();
+			}
+			
+			writer.println("del:"+name);
+			writer.flush();
+			writer.close();
+			System.out.println("WRITER CLOSED");
+			
+			try {
+				reader.close();
+				sock.close();
+				System.out.println("READER/SOCK CLOSED");
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				//e.printStackTrace();
+			}
+			System.exit(0);
+		}
+		
 	}
 	
 	class changePasswdHandler implements EventHandler<ActionEvent>{
@@ -657,6 +707,17 @@ public class ChatClient extends Application {
 						String histItem = message.substring(5, message.length());
 						Platform.runLater(() -> {
 							clientConsole.appendText(histItem + "\n");
+						});
+						
+					}
+					else if(firstLetter.equals("d")){
+						String userName = message.substring(4,message.length());
+						System.out.println("CAUGHT DELETE SENT BY SERVER");
+						System.out.println("user ="+userName);
+						
+						
+						Platform.runLater(() -> {
+							onlineList.getItems().remove(userName);
 						});
 						
 					}
