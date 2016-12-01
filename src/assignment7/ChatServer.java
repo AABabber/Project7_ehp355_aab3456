@@ -17,23 +17,32 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.Observable;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ChatServer extends Observable {
-	
+		
 	// A list of the users currently "online"
 	private ArrayList<String> activeUsers;	
 	private ConcurrentHashMap<String, ArrayList<String>> chatHistory;
 	private ConcurrentHashMap<String, ArrayList<String>> friendLists;
 	private int port = 4343;	// TODO: Decide whether to have user defined port
 	private BufferedReader nameReader;	// An input stream reader to determine a client's name
+	
+	/*
+	@SuppressWarnings("unused")
+	private ServerGUI serverGUI;
+	
+	public ChatServer(ServerGUI serverGUI) {
+		this.serverGUI = serverGUI;
+		
+	}
+	*/
 
 	public void setUpNetworking() throws Exception {
+		
 		activeUsers = new ArrayList<String>();
 		chatHistory = new ConcurrentHashMap<String, ArrayList<String>>();	// TODO: Double check this initialization
 		friendLists = new ConcurrentHashMap<String, ArrayList<String>>();
